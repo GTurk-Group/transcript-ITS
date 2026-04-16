@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Toast slide-in animation ─────────────────────────────────────────────── */
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ─── Print: hide everything except the transcript document ────────────────── */
+@media print {
+  /* App shell elements added by layout — hide on print */
+  aside,
+  nav,
+  header,
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  /* Prevent page breaks inside table rows */
+  tr {
+    page-break-inside: avoid;
+  }
+
+  /* Ensure backgrounds print (Chromium needs this for colored headers) */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+@layer utilities {
+  /* Thin scrollbar for audit log diffs and bulk upload tables */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(156 163 175) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgb(156 163 175);
+    border-radius: 2px;
+  }
+}
