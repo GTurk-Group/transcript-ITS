@@ -18,98 +18,57 @@ import { transcripts } from "@/db/schema";
 import { assertPermission } from "@/lib/auth/rbac";
 import { logAuditEvent, extractRequestMeta } from "@/lib/audit";
 import { generateTranscript } from "@/lib/transcript";
-import { renderTranscriptHtml } from "@/lib/pdf/template";
-import { renderHTMLToPDF } from "@/lib/pdf/generator";
-import { uploadPDF, deletePDF } from "@/lib/storage";
 import type { ActionState } from "@/types/auth";
 
-// ─── Generate transcript ──────────────────────────────────────────────────────
+type RecordResult = {
+  transcriptRecordId: string;
+  transcriptNumber: string;
+};
 
-export async function generateTranscriptAction(
+/**
+ * Creates a transcript record in the DB for audit/history.
+ * No PDF is generated — the user prints directly from the browser.
+ */
+export async function recordTranscriptAction(
   studentId: string,
-): Promise<
-  ActionState<{ transcriptRecordId: string; transcriptNumber: string }>
-> {
+): Promise<ActionState<RecordResult>> {
   const session = await assertPermission("generate_transcripts");
 
-  if (!studentId) {
-    return { status: "error", error: "Student ID is required." };
+  if (!studentId || typeof studentId !== "string") {
+    return { status: "error", error: "Invalid student ID." };
   }
 
   const headerStore = await headers();
-  const meta = extractRequestMeta(headerStore);
-
-  // ── 1. Assemble transcript object ─────────────────────────────────────────
-  const genResult = await generateTranscript(
+  const outcome = await generateTranscript(
     studentId,
     session.adminId,
     headerStore,
   );
 
-  if (!genResult.ok) {
-    return { status: "error", error: genResult.error.message };
-  }
-
-  const { transcript, transcriptRecordId, transcriptNumber } = genResult;
-
-  // ── 2. Render HTML → PDF bytes ────────────────────────────────────────────
-  let pdfBytes: Buffer;
-  try {
-    const html = renderTranscriptHtml(transcript);
-    const { bytes } = await renderHTMLToPDF(html);
-    pdfBytes = bytes;
-  } catch (err) {
-    // Mark the transcript record as failed
-    await db
-      .update(transcripts)
-      .set({
-        status: "FAILED",
-        errorMessage:
-          err instanceof Error ? err.message : "PDF generation failed",
-      })
-      .where(eq(transcripts.id, transcriptRecordId));
-
+  if (!outcome.ok) {
+    const { error } = outcome;
+    if (error.code === "STUDENT_NOT_FOUND")
+      return { status: "error", error: "Student not found." };
+    if (error.code === "INSTITUTION_NOT_FOUND")
+      return { status: "error", error: error.message };
+    if (error.code === "NO_GRADE_RECORDS")
+      return { status: "error", error: error.message };
     return {
       status: "error",
-      error: "PDF generation failed. Please try again.",
+      error: "Failed to create transcript record. Please try again.",
     };
   }
-
-  // ── 3. Store PDF (S3 or local) ────────────────────────────────────────────
-  const filename = `${transcriptNumber}.pdf`;
-
-  let fileKey: string;
-  try {
-    const stored = await uploadPDF(filename, pdfBytes);
-    fileKey = stored.fileKey;
-  } catch (err) {
-    await db
-      .update(transcripts)
-      .set({
-        status: "FAILED",
-        errorMessage:
-          err instanceof Error ? err.message : "File storage failed",
-      })
-      .where(eq(transcripts.id, transcriptRecordId));
-
-    return { status: "error", error: "Failed to save PDF. Please try again." };
-  }
-
-  // ── 4. Update transcript record with file key ─────────────────────────────
-  await db
-    .update(transcripts)
-    .set({ fileKey, status: "COMPLETED" })
-    .where(eq(transcripts.id, transcriptRecordId));
 
   revalidatePath(`/transcripts/${studentId}`);
 
   return {
     status: "success",
-    data: { transcriptRecordId, transcriptNumber },
+    data: {
+      transcriptRecordId: outcome.result.transcriptRecordId,
+      transcriptNumber: outcome.result.transcriptNumber,
+    },
   };
 }
-
-// ─── Delete transcript ────────────────────────────────────────────────────────
 
 export async function deleteTranscriptAction(
   transcriptId: string,
@@ -125,19 +84,11 @@ export async function deleteTranscriptAction(
     .where(eq(transcripts.id, transcriptId))
     .limit(1);
 
-  if (!record) return { status: "error", error: "Transcript not found." };
+  if (!record)
+    return { status: "error", error: "Transcript record not found." };
 
-  // Delete the PDF from storage (S3 or local)
-  if (record.fileKey) {
-    await deletePDF(record.fileKey).catch(() => {
-      // File may already be gone — not fatal
-    });
-  }
-
-  // Delete the DB record
   await db.delete(transcripts).where(eq(transcripts.id, transcriptId));
 
-  // Audit
   const headerStore = await headers();
   await logAuditEvent({
     adminId: session.adminId,
@@ -147,12 +98,10 @@ export async function deleteTranscriptAction(
     before: {
       transcriptNumber: record.transcriptNumber,
       studentId: record.studentId,
-      fileKey: record.fileKey,
     },
     ...extractRequestMeta(headerStore),
   });
 
   revalidatePath(`/transcripts/${record.studentId}`);
-
   return { status: "success" };
 }

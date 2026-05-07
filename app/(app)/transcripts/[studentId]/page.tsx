@@ -27,8 +27,7 @@ export async function generateMetadata({ params }: PageProps) {
   const { studentId } = await params;
   const result = await assembleTranscript(studentId);
   if (!result.ok) return { title: "Transcript — TMS" };
-  const s = result.transcript.student;
-  return { title: `${s.fullName} — Transcript — TMS` };
+  return { title: `${result.transcript.student.fullName} — Transcript — TMS` };
 }
 
 export default async function TranscriptDetailPage({ params }: PageProps) {
@@ -60,19 +59,9 @@ export default async function TranscriptDetailPage({ params }: PageProps) {
   // Stamp the transcript number from the latest generated record (if any)
   // so the preview shows the same ref as the stored PDF.
   const displayTranscript = latestRecord
-    ? {
-      ...transcript,
-      transcriptNumber: latestRecord.transcriptNumber,
-      generatedAt: latestRecord.createdAt.toISOString(),
-      generatedByAdminId: latestRecord.generatedBy,
-    }
-    : {
-      ...transcript,
-      // Show a preview placeholder when no PDF has been generated yet
-      transcriptNumber: "PREVIEW",
-      generatedAt: new Date().toISOString(),
-      generatedByAdminId: null,
-    };
+    ? { ...transcript, transcriptNumber: latestRecord.transcriptNumber, generatedAt: latestRecord.createdAt.toISOString() }
+    : { ...transcript, transcriptNumber: "PREVIEW", generatedAt: new Date().toISOString() };
+
 
   return (
     <div className="space-y-0">
