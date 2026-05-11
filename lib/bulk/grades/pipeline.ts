@@ -27,9 +27,9 @@ async function insertBatch(batch: ValidGradeRow[]): Promise<BatchResult> {
         courseId: row.courseId,
         semesterId: row.semesterId,
         grade: row.grade as "A" | "B+" | "B" | "C+" | "C" | "D+" | "D" | "F",
-        gradePoint: row.gradePoint.toFixed(2),
+        gradePoint: Number(row.gradePoint).toFixed(2),
         creditHours: row.creditHours,
-        computedQualityPoints: row.computedQualityPoints.toFixed(2),
+        computedQualityPoints: Number(row.computedQualityPoints).toFixed(2),
         isSuperseded: false,
       })),
     );
@@ -52,20 +52,23 @@ async function insertBatchRowByRow(
         courseId: row.courseId,
         semesterId: row.semesterId,
         grade: row.grade as "A" | "B+" | "B" | "C+" | "C" | "D+" | "D" | "F",
-        gradePoint: row.gradePoint.toFixed(2),
+        gradePoint: Number(row.gradePoint).toFixed(2),
         creditHours: row.creditHours,
-        computedQualityPoints: row.computedQualityPoints.toFixed(2),
+        computedQualityPoints: Number(row.computedQualityPoints).toFixed(2),
         isSuperseded: false,
       });
       succeeded++;
     } catch (err) {
-      const { message } = parseDbError(err);
+      const dbError = parseDbError(err) as { message?: string };
+      const message = dbError.message ?? String(err);
       failures.push({
-        row: row.rowNumber,
-        field: "grade",
-        code: "DB_ERROR",
-        message,
-        raw: row,
+        rowNumber: row.rowNumber,
+        status: "error",
+        rawValues: {
+          indexNumber: row.indexNumber,
+          courseCode: row.courseCode,
+        },
+        errors: [],
       });
     }
   }
@@ -75,9 +78,17 @@ async function insertBatchRowByRow(
 
 export async function runGradeBulkInsertPipeline(
   validRows: ValidGradeRow[],
+  failedRows: GradeRowFailure[],
+  totalDataRows: number,
 ): Promise<GradeBulkResult> {
   if (validRows.length === 0) {
-    return { totalRows: 0, successCount: 0, failureCount: 0, failures: [] };
+    return {
+      totalRows: 0,
+      successCount: 0,
+      failureCount: 0,
+      failures: [],
+      durationMs: 0,
+    };
   }
 
   const allFailures: GradeRowFailure[] = [];
@@ -95,5 +106,6 @@ export async function runGradeBulkInsertPipeline(
     successCount: totalSucceeded,
     failureCount: allFailures.length,
     failures: allFailures,
+    durationMs: 0,
   };
 }
