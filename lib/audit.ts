@@ -38,6 +38,8 @@ export type AuditAction =
   | "DELETE_GRADE"
   // Transcripts
   | "GENERATE_TRANSCRIPT"
+  | "DELETE_TRANSCRIPT"
+  | "RECORD_TRANSCRIPT"
   // Bulk
   | "BULK_UPLOAD_STARTED"
   | "BULK_UPLOAD_COMPLETED"
