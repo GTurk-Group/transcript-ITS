@@ -58,6 +58,8 @@ export type ValidStudentRow = {
   gender: string; // "M", "F", "O", or null if not provided
   programmeId: string; // resolved UUID — not in the CSV
   programmeCode: string; // kept for the audit log
+  email?: string | null;
+  phoneNumber?: string | null;
   level: number;
   entryYear: number;
   graduationYear: number | null;
