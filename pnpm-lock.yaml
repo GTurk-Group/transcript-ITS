@@ -39,6 +39,9 @@ importers:
         specifier: ^3.23.0
         version: 3.25.76
     devDependencies:
+      '@netlify/plugin-nextjs':
+        specifier: ^5.15.11
+        version: 5.15.11
       '@types/bcryptjs':
         specifier: ^2.4.6
         version: 2.4.6
@@ -771,6 +774,10 @@ packages:
 
   '@neondatabase/serverless@0.9.5':
     resolution: {integrity: sha512-siFas6gItqv6wD/pZnvdu34wEqgG3nSE6zWZdq5j2DEsa+VvX8i/5HXJOo06qrw5axPXn+lGCxeR+NLaSPIXug==}
+
+  '@netlify/plugin-nextjs@5.15.11':
+    resolution: {integrity: sha512-cx7yoJFYDBFRecGqJaEUuvnHvU+vs9ISn7DUXyijPheaqtbyRy4+z7Mjre9swEJ19ItVeFhuGuXUkl6X5nfJeA==}
+    engines: {node: '>=18.0.0'}
 
   '@next/env@15.5.14':
     resolution: {integrity: sha512-aXeirLYuASxEgi4X4WhfXsShCFxWDfNn/8ZeC5YXAS2BB4A8FJi1kwwGL6nvMVboE7fZCzmJPNdMvVHc8JpaiA==}
@@ -2924,6 +2931,8 @@ snapshots:
   '@neondatabase/serverless@0.9.5':
     dependencies:
       '@types/pg': 8.11.6
+
+  '@netlify/plugin-nextjs@5.15.11': {}
 
   '@next/env@15.5.14': {}
 
