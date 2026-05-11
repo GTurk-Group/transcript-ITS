@@ -113,11 +113,11 @@ export type TranscriptStudent = {
   lastName: string;
   /** firstName + " " + lastName */
   fullName: string;
-  dateOfBirth: string | null;
-  gender: string | null;
+  dateOfBirth: string;
+  gender: string;
   level: number;
   entryYear: number;
-  graduationYear: number | null;
+  graduationYear: number;
   status: string;
   programme: {
     id: string;
