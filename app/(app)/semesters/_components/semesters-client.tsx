@@ -44,7 +44,7 @@ export function SemestersClient({ initial }: { initial: Semester[] }) {
     if (r.status === "success") {
       toast.success("Semester deleted");
       setSemesters((prev) => prev.filter((s) => s.id !== deleting.id));
-    } else {
+    } else if (r.status === "error") {
       toast.error(r.error);
     }
   }
