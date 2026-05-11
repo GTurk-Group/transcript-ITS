@@ -14,12 +14,22 @@ declare global {
 }
 
 function createDb() {
-  const client = postgres(process.env.DATABASE_URL!, {
+  const url = process.env.DATABASE_URL!;
+
+  // Use SSL whenever the connection string requires it (Neon, Supabase, etc.)
+  // or when running in production. Local PostgreSQL installs don't need SSL.
+  const requiresSsl =
+    url.includes("sslmode=require") ||
+    url.includes("neon.tech") ||
+    process.env.NODE_ENV === "production";
+
+  const client = postgres(url, {
     max: 1,
     idle_timeout: 20,
     connect_timeout: 10,
-    ssl: process.env.NODE_ENV === "production" ? "require" : false,
+    ssl: requiresSsl ? "require" : false,
   });
+
   return { client, db: drizzle(client, { schema }) };
 }
 
