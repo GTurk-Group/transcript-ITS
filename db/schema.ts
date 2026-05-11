@@ -110,14 +110,14 @@ export const students = pgTable(
     indexNumber: varchar("index_number", { length: 100 }).notNull(),
     firstName: varchar("first_name", { length: 100 }).notNull(),
     lastName: varchar("last_name", { length: 100 }).notNull(),
-    dateOfBirth: date("date_of_birth").notNull(), // ← NEW
-    gender: varchar("gender", { length: 10 }).notNull(), // ← NEW
+    dateOfBirth: date("date_of_birth"), // ← NEW
+    gender: varchar("gender", { length: 10 }), // ← NEW
     programmeId: uuid("programme_id")
       .references(() => programmes.id)
       .notNull(),
     level: integer("level").notNull(),
-    entryYear: varchar("entry_year").notNull(),
-    graduationYear: varchar("graduation_year").notNull(),
+    entryYear: integer("entry_year").notNull(),
+    graduationYear: integer("graduation_year"),
     status: studentStatusEnum("status").default("ACTIVE").notNull(),
     email: varchar("email", { length: 255 }),
     phoneNumber: varchar("phone_number", { length: 50 }),
