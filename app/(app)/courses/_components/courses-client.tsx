@@ -71,7 +71,7 @@ export function CoursesClient({ initial }: { initial: Course[] }) {
     setDelLoading(false);
     setDeleting(null);
     if (r.status === "success") toast.success("Course deleted");
-    else toast.error(r.error);
+    else if (r.status === "error") toast.error(r.error);
   }
 
   return (
@@ -177,7 +177,7 @@ export function CoursesClient({ initial }: { initial: Course[] }) {
           <Field label="Course title" required>
             <Input name="title" placeholder="Introduction to Mathematics" required />
           </Field>
-          <Field label="Credit hours" required hint="e.g. 2, 3, 6, 18, 24 — no upper limit">
+          <Field label="Credit hours" required hint="e.g. 2, 3, 6, 18, 24">
             <Input name="creditHours" type="number" min={1} defaultValue={3} required />
           </Field>
           <Field label="Scoring">
@@ -189,7 +189,7 @@ export function CoursesClient({ initial }: { initial: Course[] }) {
         </form>
       </Modal>
 
-      {/* Edit modal — includes isScoring and no max on credit hours */}
+      {/* Edit modal */}
       <Modal open={!!editing} onClose={() => setEditing(null)} title="Edit course"
         footer={<>
           <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
@@ -206,7 +206,7 @@ export function CoursesClient({ initial }: { initial: Course[] }) {
               <Input name="title" defaultValue={editing.title} required />
             </Field>
             <Field label="Credit hours" required
-              hint="Changing this affects future grade entries only — existing grades keep their snapshot.">
+              hint="Changing this affects future grade entries only. Existing grades retain their snapshot.">
               <Input name="creditHours" type="number" min={1} defaultValue={editing.creditHours} required />
             </Field>
             <Field label="Scoring">
