@@ -21,6 +21,8 @@ export const STUDENT_CSV_COLUMNS = [
   "lastName",
   "dateOfBirth",
   "gender",
+  "email",
+  "phoneNumber",
   "programmeCode",
   "level",
   "entryYear",
