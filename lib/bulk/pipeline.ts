@@ -37,14 +37,14 @@ async function insertBatch(batch: ValidStudentRow[]): Promise<BatchResult> {
         indexNumber: row.indexNumber,
         firstName: row.firstName,
         lastName: row.lastName,
-        dateOfBirth: row.dateOfBirth ?? null,
-        gender: row.gender ?? null,
+        dateOfBirth: row.dateOfBirth,
+        gender: row.gender,
         programmeId: row.programmeId,
         level: row.level,
         entryYear: row.entryYear,
-        graduationYear: row.graduationYear ?? null,
-        email: row.email ?? null,
-        phoneNumber: row.phoneNumber ?? null,
+        graduationYear: row.graduationYear!,
+        email: row.email,
+        phoneNumber: row.phoneNumber,
         status: "ACTIVE" as const,
       })),
     );
@@ -67,14 +67,14 @@ async function insertBatchRowByRow(
         indexNumber: row.indexNumber,
         firstName: row.firstName,
         lastName: row.lastName,
-        dateOfBirth: row.dateOfBirth ?? null,
-        gender: row.gender ?? null,
+        dateOfBirth: row.dateOfBirth,
+        gender: row.gender,
         programmeId: row.programmeId,
         level: row.level,
         entryYear: row.entryYear,
-        graduationYear: row.graduationYear ?? null,
-        // email: row.email ?? null,
-        // phoneNumber: row.phoneNumber ?? null,
+        graduationYear: row.graduationYear!,
+        email: row.email ?? null,
+        phoneNumber: row.phoneNumber ?? null,
         status: "ACTIVE" as const,
       });
       succeeded++;
@@ -100,10 +100,18 @@ async function insertBatchRowByRow(
 // ─── Public pipeline ──────────────────────────────────────────────────────────
 
 export async function runStudentBulkInsertPipeline(
-validRows: ValidStudentRow[], failedRows: StudentRowFailure[], totalDataRows: number,
+  validRows: ValidStudentRow[],
+  failedRows: StudentRowFailure[],
+  totalDataRows: number,
 ): Promise<StudentBulkResult> {
   if (validRows.length === 0) {
-    return { totalRows: 0, successCount: 0, failureCount: 0, failures: [], durationMs: 0 };
+    return {
+      totalRows: 0,
+      successCount: 0,
+      failureCount: 0,
+      failures: [],
+      durationMs: 0,
+    };
   }
 
   const allFailures: StudentRowFailure[] = [];

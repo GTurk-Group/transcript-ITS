@@ -139,8 +139,8 @@ export async function assembleTranscriptData(
       lastName: s.lastName,
       fullName: `${s.firstName} ${s.lastName}`,
       level: s.level,
-      entryYear: s.entryYear,
-      graduationYear: s.graduationYear,
+      entryYear: s.entryYear.toString(),
+      graduationYear: s.graduationYear.toString(),
       status: s.status,
       programme: {
         id: s.programmeId,
