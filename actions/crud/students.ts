@@ -90,7 +90,7 @@ export async function createStudentAction(
         programmeId: d.programmeId,
         level: d.level,
         entryYear: d.entryYear,
-        graduationYear: d.graduationYear ?? null,
+        graduationYear: d.graduationYear?.toString() ?? null,
         email: d.email ?? null,
         phoneNumber: d.phoneNumber ?? null,
         status: "ACTIVE",
@@ -179,7 +179,7 @@ export async function updateStudentAction(
         ...(fields.status !== undefined && { status: fields.status }),
         dateOfBirth: fields.dateOfBirth ?? null,
         gender: fields.gender ?? null,
-        graduationYear: fields.graduationYear ?? null,
+        graduationYear: fields.graduationYear?.toString() ?? null,
         email: fields.email ?? null,
         phoneNumber: fields.phoneNumber ?? null,
       })
