@@ -22,19 +22,19 @@
 import { useState } from "react";
 
 type Props = {
-  endpoint:  string;
-  filename:  string;
-  label?:    string;
-  variant?:  "primary" | "outline";
-  size?:     "sm" | "md";
+  endpoint: string;
+  filename: string;
+  label?: string;
+  variant?: "primary" | "outline";
+  size?: "sm" | "md";
 };
 
 export function TemplateDownloadButton({
   endpoint,
   filename,
-  label    = "Download template",
-  variant  = "outline",
-  size     = "sm",
+  label = "Download template",
+  variant = "outline",
+  size = "sm",
 }: Props) {
   const [state, setState] = useState<"idle" | "loading" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -48,17 +48,17 @@ export function TemplateDownloadButton({
 
       if (res.status === 401) throw new Error("You must be logged in to download templates.");
       if (res.status === 403) throw new Error("You do not have permission to download templates.");
-      if (!res.ok)            throw new Error(`Download failed (${res.status}). Please try again.`);
+      if (!res.ok) throw new Error(`Download failed (${res.status}). Please try again.`);
 
       // Extract filename from Content-Disposition if present
       const disposition = res.headers.get("content-disposition") ?? "";
-      const nameMatch   = disposition.match(/filename="?([^";\n]+)"?/i);
-      const dlFilename  = nameMatch?.[1]?.trim() ?? filename;
+      const nameMatch = disposition.match(/filename="?([^";\n]+)"?/i);
+      const dlFilename = nameMatch?.[1]?.trim() ?? filename;
 
       const blob = await res.blob();
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement("a");
-      a.href     = url;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
       a.download = dlFilename;
       document.body.appendChild(a);
       a.click();

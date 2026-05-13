@@ -9,15 +9,15 @@
  *  - Links to transcript generation
  */
 
-import { notFound }        from "next/navigation";
-import { eq }              from "drizzle-orm";
+import { notFound } from "next/navigation";
+import { eq } from "drizzle-orm";
 import { requireAuth, can } from "@/lib/auth/rbac";
-import { db }              from "@/db";
+import { db } from "@/db";
 import { students, programmes } from "@/db/schema";
-import { fetchStudentGradeRows }  from "@/lib/queries/grades";
-import { calculateCGPA }          from "@/lib/gpa";
+import { fetchStudentGradeRows } from "@/lib/queries/grades";
+import { calculateCGPA } from "@/lib/gpa";
 import { formatGPA, formatSemesterLabel } from "@/lib/gpa";
-import type { Metadata }   from "next";
+import type { Metadata } from "next";
 import { StudentStatusForm } from "./_components/student-status-form";
 
 export const metadata: Metadata = { title: "Student profile — TMS" };
@@ -26,22 +26,22 @@ type PageProps = { params: Promise<{ id: string }> };
 
 export default async function StudentDetailPage({ params }: PageProps) {
   const session = await requireAuth();
-  const { id }  = await params;
+  const { id } = await params;
 
   const [studentRows, gradeRows, cgpa] = await Promise.all([
     db
       .select({
-        id:             students.id,
-        indexNumber:    students.indexNumber,
-        firstName:      students.firstName,
-        lastName:       students.lastName,
-        level:          students.level,
-        entryYear:      students.entryYear,
+        id: students.id,
+        indexNumber: students.indexNumber,
+        firstName: students.firstName,
+        lastName: students.lastName,
+        level: students.level,
+        entryYear: students.entryYear,
         graduationYear: students.graduationYear,
-        status:         students.status,
-        createdAt:      students.createdAt,
-        programmeName:  programmes.name,
-        programmeCode:  programmes.code,
+        status: students.status,
+        createdAt: students.createdAt,
+        programmeName: programmes.name,
+        programmeCode: programmes.code,
       })
       .from(students)
       .innerJoin(programmes, eq(students.programmeId, programmes.id))
@@ -54,8 +54,8 @@ export default async function StudentDetailPage({ params }: PageProps) {
   if (studentRows.length === 0) notFound();
   const student = studentRows[0];
 
-  const canEdit    = can(session, "manage_students");
-  const canGrades  = can(session, "enter_grades");
+  const canEdit = can(session, "manage_students");
+  const canGrades = can(session, "enter_grades");
 
   // Group display rows by semesterId for the tables (GPA already computed)
   const gradesBySemester = new Map<string, typeof gradeRows>();
@@ -222,7 +222,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
 
 function StatusBadge({ status }: { status: string }) {
   const c: Record<string, string> = {
-    ACTIVE:    "bg-green-100 text-green-800",
+    ACTIVE: "bg-green-100 text-green-800",
     GRADUATED: "bg-blue-100 text-blue-800",
     WITHDRAWN: "bg-gray-100 text-gray-600",
   };
@@ -235,9 +235,9 @@ function StatusBadge({ status }: { status: string }) {
 
 const GRADE_COLORS: Record<string, string> = {
   A: "bg-green-100 text-green-800", "B+": "bg-emerald-100 text-emerald-800",
-  B: "bg-teal-100 text-teal-800",   "C+": "bg-yellow-100 text-yellow-800",
+  B: "bg-teal-100 text-teal-800", "C+": "bg-yellow-100 text-yellow-800",
   C: "bg-amber-100 text-amber-800", "D+": "bg-orange-100 text-orange-800",
-  D: "bg-red-100 text-red-700",     F:    "bg-red-200 text-red-900",
+  D: "bg-red-100 text-red-700", F: "bg-red-200 text-red-900",
 };
 
 function GradeBadge({ grade }: { grade: string }) {

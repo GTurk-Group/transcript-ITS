@@ -39,7 +39,7 @@ export type TranscriptStudent = {
   fullName: string;
   level: number;
   entryYear: string;
-  graduationYear: string;
+  graduationYear: string | null;
   status: string;
   programme: {
     id: string;
@@ -140,7 +140,7 @@ export async function assembleTranscriptData(
       fullName: `${s.firstName} ${s.lastName}`,
       level: s.level,
       entryYear: s.entryYear.toString(),
-      graduationYear: s.graduationYear.toString(),
+      graduationYear: s.graduationYear ?? null,
       status: s.status,
       programme: {
         id: s.programmeId,

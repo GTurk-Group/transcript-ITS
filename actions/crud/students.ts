@@ -21,14 +21,20 @@ const studentSchema = z.object({
   indexNumber: z.string().min(1).max(100),
   firstName: z.string().min(1).max(100),
   lastName: z.string().min(1).max(100),
-  dateOfBirth: z.string().optional(),
-  gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
+  dateOfBirth: z.string().nullable().optional(),
+  gender: z.enum(["MALE", "FEMALE", "OTHER"]).nullable().optional(),
   programmeId: z.string().uuid(),
   level: z.coerce.number().int().min(100).max(900),
   entryYear: z.coerce.number().int().min(1990).max(2099),
-  graduationYear: z.coerce.number().int().min(1990).max(2099).optional(),
-  email: z.string().email().optional(),
-  phoneNumber: z.string().optional(),
+  graduationYear: z.coerce
+    .number()
+    .int()
+    .min(1990)
+    .max(2099)
+    .nullable()
+    .optional(),
+  email: z.string().email().nullable().optional(),
+  phoneNumber: z.string().nullable().optional(),
 });
 
 const studentUpdateSchema = studentSchema.partial().extend({
@@ -38,10 +44,9 @@ const studentUpdateSchema = studentSchema.partial().extend({
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Convert empty string from FormData to undefined */
-function str(fd: FormData, key: string): string | undefined {
+function str(fd: FormData, key: string): string | null {
   const v = fd.get(key);
-  if (!v || typeof v !== "string" || v.trim() === "") return undefined;
+  if (!v || typeof v !== "string" || v.trim() === "") return null;
   return v.trim();
 }
 
@@ -199,7 +204,7 @@ export async function updateStudentAction(
     if (msg.includes("unique") || msg.includes("duplicate")) {
       return {
         status: "error",
-        error: `Index number is already taken by another student.`,
+        error: "Index number is already taken by another student.",
       };
     }
     return {

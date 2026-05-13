@@ -117,7 +117,7 @@ export type TranscriptStudent = {
   gender: string;
   level: number;
   entryYear: number;
-  graduationYear: number;
+  graduationYear: string | null;
   status: string;
   programme: {
     id: string;

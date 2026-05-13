@@ -288,7 +288,7 @@ export async function assembleTranscript(
     gender: (s as any).gender ?? null,
     level: s.level,
     entryYear: s.entryYear,
-    graduationYear: s.graduationYear,
+    graduationYear: s.graduationYear ?? null,
     status: s.status,
     programme: {
       id: s.programmeId,

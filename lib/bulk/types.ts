@@ -64,7 +64,7 @@ export type ValidStudentRow = {
   phoneNumber?: string | null;
   level: number;
   entryYear: number;
-  graduationYear: number | null;
+  graduationYear: string | null;
 };
 
 // ─── Per-row result ───────────────────────────────────────────────────────────

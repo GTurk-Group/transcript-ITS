@@ -10,12 +10,12 @@
  * ADMIN+ only (bulk_upload permission).
  */
 
-import type { Metadata }         from "next";
-import { requirePermission }     from "@/lib/auth/rbac";
-import { TEMPLATE_SPECS }        from "@/lib/templates";
-import { DEFAULT_GRADE_SCALE }   from "@/lib/gpa/scale";
+import type { Metadata } from "next";
+import { requirePermission } from "@/lib/auth/rbac";
+import { TEMPLATE_SPECS } from "@/lib/templates";
+import { DEFAULT_GRADE_SCALE } from "@/lib/gpa/scale";
 import { TemplateDownloadButton } from "./_components/template-download-button";
-import { TemplatePreviewTable }  from "./_components/template-preview-table";
+import { TemplatePreviewTable } from "./_components/template-preview-table";
 
 export const metadata: Metadata = {
   title: "Templates — Transcript Management System",
@@ -42,12 +42,12 @@ export default async function TemplatesPage() {
         uploadHref="/bulk/upload"
         uploadLabel="Go to student upload"
         columnRows={[
-          { name: "indexNumber",    required: true,  note: "Unique student identifier, e.g. CS/2024/001" },
-          { name: "firstName",      required: true,  note: "Student's given name" },
-          { name: "lastName",       required: true,  note: "Student's family / surname" },
-          { name: "programmeCode",  required: true,  note: "Must match an active programme code in the system" },
-          { name: "level",          required: true,  note: "100, 200, 300, 400, 500, 600, 700, or 800" },
-          { name: "entryYear",      required: true,  note: "4-digit year of first admission, e.g. 2024" },
+          { name: "indexNumber", required: true, note: "Unique student identifier, e.g. CS/2024/001" },
+          { name: "firstName", required: true, note: "Student's given name" },
+          { name: "lastName", required: true, note: "Student's family / surname" },
+          { name: "programmeCode", required: true, note: "Must match an active programme code in the system" },
+          { name: "level", required: true, note: "100, 200, 300, 400, 500, 600, 700, or 800" },
+          { name: "entryYear", required: true, note: "4-digit year of first admission, e.g. 2024" },
           { name: "graduationYear", required: false, note: "4-digit year — leave blank for current students" },
         ]}
         warningNote={null}
@@ -60,10 +60,10 @@ export default async function TemplatesPage() {
         uploadLabel="Go to grade upload"
         columnRows={[
           { name: "indexNumber", required: true, note: "Must match an existing student index number" },
-          { name: "courseCode",  required: true, note: "Must match an existing active course code" },
-          { name: "semester",    required: true, note: "FIRST or SECOND (also accepts 1, 2, first, second)" },
-          { name: "year",        required: true, note: "4-digit academic year start, e.g. 2024 for 2024/2025" },
-          { name: "grade",       required: true, note: `One of: ${Object.keys(DEFAULT_GRADE_SCALE).join(", ")}` },
+          { name: "courseCode", required: true, note: "Must match an existing active course code" },
+          { name: "semester", required: true, note: "FIRST or SECOND (also accepts 1, 2, first, second)" },
+          { name: "year", required: true, note: "4-digit academic year start, e.g. 2024 for 2024/2025" },
+          { name: "grade", required: true, note: `One of: ${Object.keys(DEFAULT_GRADE_SCALE).join(", ")}` },
         ]}
         warningNote="Do not add gradePoint, creditHours, or computedQualityPoints columns. These are computed server-side from the grade letter and course record. Any such columns will be ignored."
       />
@@ -83,10 +83,10 @@ async function TemplateCard({
   columnRows,
   warningNote,
 }: {
-  spec:        Spec;
-  uploadHref:  string;
+  spec: Spec;
+  uploadHref: string;
   uploadLabel: string;
-  columnRows:  ColumnRow[];
+  columnRows: ColumnRow[];
   warningNote: string | null;
 }) {
   return (

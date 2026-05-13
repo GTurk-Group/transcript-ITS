@@ -117,7 +117,7 @@ export const students = pgTable(
       .notNull(),
     level: integer("level").notNull(),
     entryYear: integer("entry_year").notNull(),
-    graduationYear: integer("graduation_year").notNull(),
+    graduationYear: varchar("graduation_year"),
     status: studentStatusEnum("status").default("ACTIVE").notNull(),
     email: varchar("email", { length: 255 }),
     phoneNumber: varchar("phone_number", { length: 50 }),
