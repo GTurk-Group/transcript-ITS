@@ -18,6 +18,7 @@ import {
   hashPassword,
   DUMMY_HASH,
 } from "@/lib/auth/passwords";
+import { ensureBootstrapAdmin } from "@/lib/auth/bootstrap-admin";
 import { createSession, clearSession, getSession } from "@/lib/auth/session";
 import { logAuditEvent, extractRequestMeta } from "@/lib/audit";
 import { rateLimit, clearRateLimit, loginRateLimitKey } from "@/lib/rate-limit";
@@ -60,11 +61,20 @@ export async function loginAction(
   }
 
   // ── Fetch admin ───────────────────────────────────────────────────────────
-  const [admin] = await db
+  let [admin] = await db
     .select()
     .from(admins)
     .where(eq(admins.email, email))
     .limit(1);
+
+  if (!admin) {
+    await ensureBootstrapAdmin(email);
+    [admin] = await db
+      .select()
+      .from(admins)
+      .where(eq(admins.email, email))
+      .limit(1);
+  }
 
   // Timing-safe: always run bcrypt even when no user found
   const hashToCompare = admin?.password ?? DUMMY_HASH;
