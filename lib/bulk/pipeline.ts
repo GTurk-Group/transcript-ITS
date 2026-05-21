@@ -37,14 +37,14 @@ async function insertBatch(batch: ValidStudentRow[]): Promise<BatchResult> {
         indexNumber: row.indexNumber,
         firstName: row.firstName,
         lastName: row.lastName,
-        dateOfBirth: row.dateOfBirth ?? null,
-        gender: row.gender ?? null,
+        dateOfBirth: row.dateOfBirth,
+        gender: row.gender,
         programmeId: row.programmeId,
         level: row.level,
         entryYear: row.entryYear,
-        graduationYear: row.graduationYear ?? null,
-        email: row.email ?? null,
-        phoneNumber: row.phoneNumber ?? null,
+        graduationYear: row.graduationYear!,
+        email: row.email,
+        phoneNumber: row.phoneNumber,
         status: "ACTIVE" as const,
       })),
     );
@@ -67,25 +67,29 @@ async function insertBatchRowByRow(
         indexNumber: row.indexNumber,
         firstName: row.firstName,
         lastName: row.lastName,
-        dateOfBirth: row.dateOfBirth ?? null,
-        gender: row.gender ?? null,
+        dateOfBirth: row.dateOfBirth,
+        gender: row.gender,
         programmeId: row.programmeId,
         level: row.level,
         entryYear: row.entryYear,
-        graduationYear: row.graduationYear ?? null,
-        // email: row.email ?? null,
-        // phoneNumber: row.phoneNumber ?? null,
+        graduationYear: row.graduationYear!,
+        email: row.email ?? null,
+        phoneNumber: row.phoneNumber ?? null,
         status: "ACTIVE" as const,
       });
       succeeded++;
     } catch (err) {
-      const { message } = parseDbError(err);
+      const dbError = parseDbError(err) as { message?: string };
+      const message = dbError?.message ?? String(err);
       failures.push({
-        row: row.rowNumber,
-        field: "indexNumber",
-        code: "DB_ERROR",
-        message,
-        raw: row,
+        rowNumber: row.rowNumber,
+        status: "error",
+        rawValues: {
+          indexNumber: row.indexNumber,
+          firstName: row.firstName,
+          lastName: row.lastName,
+        },
+        errors: [],
       });
     }
   }
@@ -97,9 +101,17 @@ async function insertBatchRowByRow(
 
 export async function runStudentBulkInsertPipeline(
   validRows: ValidStudentRow[],
+  failedRows: StudentRowFailure[],
+  totalDataRows: number,
 ): Promise<StudentBulkResult> {
   if (validRows.length === 0) {
-    return { totalRows: 0, successCount: 0, failureCount: 0, failures: [] };
+    return {
+      totalRows: 0,
+      successCount: 0,
+      failureCount: 0,
+      failures: [],
+      durationMs: 0,
+    };
   }
 
   const allFailures: StudentRowFailure[] = [];
@@ -118,5 +130,6 @@ export async function runStudentBulkInsertPipeline(
     successCount: totalSucceeded,
     failureCount: allFailures.length,
     failures: allFailures,
+    durationMs: 0,
   };
 }

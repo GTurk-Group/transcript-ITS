@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Generate transcript button — client component.
+ * Record transcript button — client component.
  *
  * Wraps the generateTranscriptAction server action with:
  *  - Pending / loading state (disables button, shows spinner)
@@ -10,7 +10,7 @@
  */
 
 import { useState, useTransition } from "react";
-import { generateTranscriptAction } from "@/actions/transcripts";
+import { recordTranscriptAction } from "@/actions/transcripts";
 
 type Props = {
   studentId: string;
@@ -23,7 +23,7 @@ export function GenerateTranscriptButton({ studentId }: Props) {
   function handleGenerate() {
     setError(null);
     startTransition(async () => {
-      const result = await generateTranscriptAction(studentId);
+      const result = await recordTranscriptAction(studentId);
 
       if (result.status === "error") {
         setError(result.error);
@@ -58,12 +58,12 @@ export function GenerateTranscriptButton({ studentId }: Props) {
         {isPending ? (
           <>
             <Spinner />
-            Generating PDF…
+            Recording…
           </>
         ) : (
           <>
             <PDFIcon />
-            Generate transcript
+            Record transcript
           </>
         )}
       </button>

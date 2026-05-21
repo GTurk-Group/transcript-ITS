@@ -38,6 +38,9 @@ pnpm dev
 |---|---|---|
 | `DATABASE_URL` | **Yes** | PostgreSQL connection string |
 | `JWT_SECRET` | **Yes** (prod) | At least 32 chars. `openssl rand -base64 64` |
+| `SUPER_ADMIN_EMAIL` | Optional | Creates the first admin account when no admins exist |
+| `SUPER_ADMIN_PASSWORD` | Optional | Password for the first admin account; must be at least 8 characters |
+| `SUPER_ADMIN_ROLE` | Optional | Defaults to `SUPER_ADMIN` |
 | `PUPPETEER_EXECUTABLE_PATH` | Optional | Path to Chromium in Docker/Lambda |
 | `S3_BUCKET` / `AWS_*` | Optional | For production PDF storage |
 

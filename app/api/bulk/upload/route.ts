@@ -21,22 +21,22 @@
  */
 
 import { type NextRequest, NextResponse } from "next/server";
-import { verifyToken }        from "@/lib/auth/jwt";
-import { COOKIE_NAME }        from "@/lib/auth/config";
-import { can }                from "@/lib/auth/rbac";
+import { verifyToken } from "@/lib/auth/jwt";
+import { COOKIE_NAME } from "@/lib/auth/config";
+import { can } from "@/lib/auth/rbac";
 import { logAuditEvent, extractRequestMeta } from "@/lib/audit";
-import { parseStudentCSV }    from "@/lib/bulk/parser";
-import { validateBatch }      from "@/lib/bulk/validator";
-import { runBulkInsertPipeline } from "@/lib/bulk/pipeline";
+import { parseStudentCSV } from "@/lib/bulk/parser";
+import { validateBatch } from "@/lib/bulk/validator";
+import { runStudentBulkInsertPipeline } from "@/lib/bulk/pipeline";
 import type { BulkUploadResult } from "@/lib/bulk/types";
 
-const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;   // 5 MB
-const MAX_ROW_COUNT       = 5_000;
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+const MAX_ROW_COUNT = 5_000;
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   // ── 1. Auth ────────────────────────────────────────────────────────────────
 
-  const token   = request.cookies.get(COOKIE_NAME)?.value;
+  const token = request.cookies.get(COOKIE_NAME)?.value;
   const session = token ? await verifyToken(token) : null;
 
   if (!session) {
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   } catch {
     return NextResponse.json(
       { error: "Invalid request — expected multipart/form-data." },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -64,28 +64,33 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!(file instanceof File)) {
     return NextResponse.json(
       { error: 'No file provided. Include a CSV as the "file" field.' },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   // ── 3. File type and size guards ───────────────────────────────────────────
 
-  const mimeOk = file.type === "text/csv" ||
-                 file.type === "application/vnd.ms-excel" ||
-                 file.type === "text/plain" ||
-                 file.name.toLowerCase().endsWith(".csv");
+  const mimeOk =
+    file.type === "text/csv" ||
+    file.type === "application/vnd.ms-excel" ||
+    file.type === "text/plain" ||
+    file.name.toLowerCase().endsWith(".csv");
 
   if (!mimeOk) {
     return NextResponse.json(
-      { error: `Invalid file type "${file.type}". Only CSV files are accepted.` },
-      { status: 400 }
+      {
+        error: `Invalid file type "${file.type}". Only CSV files are accepted.`,
+      },
+      { status: 400 },
     );
   }
 
   if (file.size > MAX_FILE_SIZE_BYTES) {
     return NextResponse.json(
-      { error: `File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum size is 5 MB.` },
-      { status: 400 }
+      {
+        error: `File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum size is 5 MB.`,
+      },
+      { status: 400 },
     );
   }
 
@@ -96,15 +101,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     text = await file.text();
   } catch {
     return NextResponse.json(
-      { error: "Failed to read the uploaded file. Ensure it is a valid UTF-8 CSV." },
-      { status: 400 }
+      {
+        error:
+          "Failed to read the uploaded file. Ensure it is a valid UTF-8 CSV.",
+      },
+      { status: 400 },
     );
   }
 
   if (text.trim().length === 0) {
     return NextResponse.json(
       { error: "The uploaded file is empty." },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -117,33 +125,39 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // ── 6. Parse CSV ───────────────────────────────────────────────────────────
 
-  const { rows: rawRows, missingHeaders, totalDataRows } = parseStudentCSV(stripped);
+  const {
+    rows: rawRows,
+    missingHeaders,
+    totalDataRows,
+  } = parseStudentCSV(stripped);
 
   if (missingHeaders.length > 0) {
     return NextResponse.json(
       {
-        error: `Missing required columns: ${missingHeaders.join(", ")}. ` +
-               `Download the template to see the expected format.`,
+        error:
+          `Missing required columns: ${missingHeaders.join(", ")}. ` +
+          `Download the template to see the expected format.`,
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   if (totalDataRows === 0) {
     return NextResponse.json(
       { error: "No data rows found. The file contains only a header row." },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   if (totalDataRows > MAX_ROW_COUNT) {
     return NextResponse.json(
       {
-        error: `File contains ${totalDataRows.toLocaleString()} rows. ` +
-               `Maximum per upload is ${MAX_ROW_COUNT.toLocaleString()}. ` +
-               `Split the file into smaller batches.`,
+        error:
+          `File contains ${totalDataRows.toLocaleString()} rows. ` +
+          `Maximum per upload is ${MAX_ROW_COUNT.toLocaleString()}. ` +
+          `Split the file into smaller batches.`,
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -152,10 +166,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const meta = extractRequestMeta(request.headers);
 
   await logAuditEvent({
-    adminId:  session.adminId,
-    action:   "BULK_UPLOAD_STARTED",
-    entity:   "students",
-    after:    { fileName: file.name, fileSize: file.size, rowCount: totalDataRows },
+    adminId: session.adminId,
+    action: "BULK_UPLOAD_STARTED",
+    entity: "students",
+    after: {
+      fileName: file.name,
+      fileSize: file.size,
+      rowCount: totalDataRows,
+    },
     ...meta,
   });
 
@@ -165,24 +183,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // ── 9. Insert valid rows (row-level error recovery) ────────────────────────
 
-  const result: BulkUploadResult = await runBulkInsertPipeline(
+  const result: BulkUploadResult = await runStudentBulkInsertPipeline(
     validRows,
     failedRows,
-    totalDataRows
+    totalDataRows,
   );
 
   // ── 10. Audit: upload completed ────────────────────────────────────────────
 
   await logAuditEvent({
-    adminId:  session.adminId,
-    action:   "BULK_UPLOAD_COMPLETED",
-    entity:   "students",
+    adminId: session.adminId,
+    action: "BULK_UPLOAD_COMPLETED",
+    entity: "students",
     after: {
-      fileName:     file.name,
-      totalRows:    result.totalRows,
+      fileName: file.name,
+      totalRows: result.totalRows,
       successCount: result.successCount,
       failureCount: result.failureCount,
-      durationMs:   result.durationMs,
+      durationMs: result.durationMs,
     },
     ...meta,
   });

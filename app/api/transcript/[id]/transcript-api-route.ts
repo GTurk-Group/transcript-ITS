@@ -28,7 +28,7 @@ const TRANSCRIPT_DIR = join(process.cwd(), ".transcripts");
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   // 1. Auth — read cookie directly (API routes don't use next/headers in Edge)
   const token = request.cookies.get(COOKIE_NAME)?.value;
@@ -52,10 +52,7 @@ export async function GET(
     .limit(1);
 
   if (rows.length === 0) {
-    return NextResponse.json(
-      { error: "Transcript not found" },
-      { status: 404 },
-    );
+    return NextResponse.json({ error: "Transcript not found" }, { status: 404 });
   }
 
   const transcript = rows[0];
@@ -71,7 +68,7 @@ export async function GET(
   } catch {
     return NextResponse.json(
       { error: "Transcript file not found. It may need to be regenerated." },
-      { status: 404 },
+      { status: 404 }
     );
   }
 
