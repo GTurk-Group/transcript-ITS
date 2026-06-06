@@ -16,10 +16,7 @@
  * Requires a SUPER_ADMIN to already exist (run seed:admin first).
  */
 
-import { config } from "dotenv";
-import { resolve } from "path";
-
-config({ path: resolve(process.cwd(), ".env") });
+import "./load-env";
 
 import { db }                   from "../db";
 import { institution, registrar, programmes, courses, semesters, students, grades, admins } from "../db/schema";

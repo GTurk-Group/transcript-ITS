@@ -6,28 +6,49 @@ Production-grade Next.js 15 application for managing academic transcripts at hig
 
 ## Quick start
 
+### Local development (PostgreSQL in Docker)
+
+Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) and Node 20+.
+
 ```bash
-# 1. Clone and install
-git clone <repo>
-cd tms
+# 1. Install dependencies
 pnpm install
 
 # 2. Configure environment
 cp .env.example .env.local
-# Edit .env.local — set JWT_SECRET and DATABASE_URL at minimum
+# Edit .env.local — set JWT_SECRET (≥32 chars). DATABASE_URL defaults to local Postgres.
 
-# 3. Push schema to database
+# 3. Start PostgreSQL
+pnpm db:up
+# Wait until healthy: pnpm db:logs
+
+# 4. Push schema to the database
 pnpm db:push
 
-# 4. Create the first SUPER_ADMIN
+# 5. Create the first SUPER_ADMIN
 pnpm seed:admin --email admin@example.com --password changeme123
 
-# 5. (Optional) Seed demo data
+# 6. (Optional) Seed demo data
 pnpm seed:demo
 
-# 6. Start dev server
+# 7. Start dev server
 pnpm dev
 # → http://localhost:3000
+```
+
+Stop Postgres when finished: `pnpm db:down`. Data persists in the `tms_postgres_data` Docker volume.
+
+Postgres listens on **port 5433** (not 5432) so it does not clash with an existing local PostgreSQL install.
+
+### Cloud database (Neon, Supabase, etc.)
+
+```bash
+pnpm install
+cp .env.example .env.local
+# Set DATABASE_URL to your hosted connection string (usually includes sslmode=require)
+pnpm db:push
+pnpm seed:admin --email admin@example.com --password changeme123
+pnpm dev
 ```
 
 ---
@@ -260,7 +281,6 @@ tms/
 ☐ Add at least one institution record via /admin/institution
 ☐ Add at least one registrar via /admin/registrar
 ☐ For Vercel: swap puppeteer for puppeteer-core + @sparticuz/chromium
-☐ For S3 PDF storage: implement writeTranscriptFile in actions/transcripts.ts
 ☐ Remove PUPPETEER_EXECUTABLE_PATH from env if using @sparticuz/chromium
 ☐ Confirm tailwind.config.ts has darkMode: "class"
 ☐ Confirm app/layout.tsx has suppressHydrationWarning on <html>
@@ -269,46 +289,14 @@ tms/
 
 ---
 
-## Vercel PDF deployment
+## Database
 
-Puppeteer with bundled Chromium (~300 MB) exceeds Vercel's 50 MB function limit.
+The app uses `postgres` (postgres-js) via `db/index.ts`. SSL is enabled automatically for Neon/Supabase URLs; local Docker Postgres uses no SSL.
 
-```bash
-pnpm remove puppeteer
-pnpm add puppeteer-core @sparticuz/chromium
-```
-
-Replace `lib/pdf/generator.ts` launch block:
-
-```typescript
-import chromium from "@sparticuz/chromium";
-import puppeteer from "puppeteer-core";
-
-browser = await puppeteer.launch({
-  args:           chromium.args,
-  executablePath: await chromium.executablePath(),
-  headless:       chromium.headless,
-});
-```
-
----
-
-## Self-hosted PostgreSQL (non-Neon)
-
-Replace `db/index.ts`:
-
-```typescript
-import { drizzle }  from "drizzle-orm/postgres-js";
-import postgres      from "postgres";
-import * as schema   from "./schema";
-
-const client = postgres(process.env.DATABASE_URL!);
-export const db = drizzle(client, { schema });
-```
-
-```bash
-pnpm remove @neondatabase/serverless drizzle-orm
-pnpm add postgres drizzle-orm
-```
-
-Update `drizzle.config.ts` dialect: still `"postgresql"` — no change needed.
+| Command | Purpose |
+|---|---|
+| `pnpm db:up` | Start local Postgres (`docker compose`) |
+| `pnpm db:down` | Stop local Postgres |
+| `pnpm db:push` | Apply schema in development |
+| `pnpm db:migrate` | Run SQL migrations (production) |
+| `pnpm db:studio` | Open Drizzle Studio |

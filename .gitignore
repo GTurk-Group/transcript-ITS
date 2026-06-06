@@ -87,6 +87,9 @@ web_modules/
 .next
 out
 
+# Local transcript PDFs
+.transcripts/
+
 # Nuxt.js build / generate output
 .nuxt
 dist
