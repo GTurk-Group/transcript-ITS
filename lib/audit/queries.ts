@@ -12,7 +12,7 @@
 import { db } from "@/db";
 import { auditLogs, admins } from "@/db/schema";
 import { desc, eq, and, gte, lte, ilike, count, sql } from "drizzle-orm";
-import type { AuditAction } from "@/lib/audit";
+import type { AuditAction } from "./write";
 
 export const PAGE_SIZE = 50;
 
@@ -210,8 +210,7 @@ export const AUDIT_ACTIONS: AuditAction[] = [
 ];
 
 // ─── Action classification helpers ───────────────────────────────────────────
-// Moved to lib/audit-log-utils.ts (client-safe, no DB imports).
 // Re-exported here so server-side imports keep working unchanged.
 
-export { classifyAction, ACTION_CATEGORY_STYLES } from "./audit-log-utils";
-export type { ActionCategory } from "./audit-log-utils";
+export { classifyAction, ACTION_CATEGORY_STYLES } from "./client-utils";
+export type { ActionCategory } from "./client-utils";

@@ -6,8 +6,8 @@
  * generateTranscriptAction — full pipeline: assemble → PDF → store → DB record
  * deleteTranscriptAction   — remove PDF from storage + DB record
  *
- * PDF storage now goes through lib/storage which automatically uses
- * S3/R2/MinIO in production or .transcripts/ locally in development.
+ * Creates a transcript record in the DB for audit/history.
+ * The printable document is rendered in the browser via TranscriptPreview.
  */
 
 import { revalidatePath } from "next/cache";

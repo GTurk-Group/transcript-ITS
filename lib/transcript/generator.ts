@@ -30,7 +30,7 @@
 import { db } from "@/db";
 import { transcripts } from "@/db/schema";
 import { logAuditEvent, extractRequestMeta } from "@/lib/audit";
-import { parseDbError } from "@/lib/actions/utils";
+import { parseDbError } from "@/actions/utils";
 import { assembleTranscript } from "./assembler";
 import {
   generateTranscriptNumber,

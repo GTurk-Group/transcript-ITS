@@ -12,7 +12,7 @@
 
 import { db } from "@/db";
 import { students } from "@/db/schema";
-import { parseDbError } from "@/lib/actions/utils";
+import { parseDbError } from "@/actions/utils";
 import type {
   ValidStudentRow,
   RowFailure as StudentRowFailure,

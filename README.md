@@ -169,9 +169,7 @@ generateTranscript(studentId, adminId, headers)
   └── logAuditEvent (full academic snapshot — permanent record)
 
 Then in server action:
-  ├── renderTranscriptHtml(transcript) → HTML string
-  ├── renderHTMLToPDF(html)            → { bytes, checksum, sizeBytes }
-  └── writeTranscriptFile(fileKey, bytes) → .transcripts/ or S3
+  └── recordTranscriptAction → browser print from TranscriptPreview
 ```
 
 ---
@@ -216,28 +214,28 @@ tms/
 │
 ├── actions/
 │   ├── auth.ts                ← loginAction, logoutAction
-│   ├── transcripts.ts         ← generateTranscriptAction
+│   ├── transcripts.ts         ← recordTranscriptAction
+│   ├── utils.ts               ← parseDbError, withAction (shared by CRUD)
 │   └── crud/                  ← createXAction, updateXAction, deleteXAction per entity
 │
 ├── components/
 │   ├── ui/index.tsx           ← Toast, Modal, Button, Table, Badge, Field, Input...
-│   └── layout/app-shell.tsx   ← sidebar, dark mode, breadcrumb, mobile drawer
+│   ├── layout/app-shell.tsx   ← sidebar, dark mode, breadcrumb, mobile drawer
+│   ├── transcript/            ← printable preview, action bar, grading scheme page
+│   └── templates/             ← CSV template download + preview widgets
 │
 ├── lib/
 │   ├── auth/                  ← config, jwt (jose), passwords (bcrypt), rbac, session
-│   ├── gpa.ts                 ← re-export barrel → lib/gpa/ (TS resolution fix)
 │   ├── gpa/                   ← queries (SQL agg), compute, scale, types
-│   ├── transcript/            ← assembler, generator, checksum, types
+│   ├── grades/queries.ts      ← grade row fetches for transcript tables
+│   ├── transcript/            ← assembler, generator, checksum, types (server domain)
 │   ├── bulk/                  ← student: parser, validator, pipeline, report
 │   ├── bulk/grades/           ← grade: parser, validator, pipeline, report
-│   ├── pdf/                   ← generator (Puppeteer), template (HTML→TranscriptObject)
 │   ├── templates/             ← CSV template generators (BOM+CRLF)
-│   ├── audit.ts               ← logAuditEvent, extractRequestMeta
-│   ├── audit-log.ts           ← queryAuditRows, queryAuditStats, classification
-│   └── actions/utils.ts       ← parseDbError, withAction
+│   └── audit/                 ← write.ts, queries.ts, client-utils.ts
 │
 ├── db/
-│   ├── index.ts               ← Drizzle + Neon HTTP client
+│   ├── index.ts               ← Drizzle + postgres-js client
 │   ├── schema.ts              ← all tables, enums, indexes
 │   └── migrations/
 │       └── 0001_initial.sql   ← complete schema DDL

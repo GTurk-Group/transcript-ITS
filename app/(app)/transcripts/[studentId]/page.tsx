@@ -17,9 +17,11 @@ import { requireAuth, can } from "@/lib/auth/rbac";
 import { db } from "@/db";
 import { transcripts } from "@/db/schema";
 import { assembleTranscript } from "@/lib/transcript";
-import { TranscriptPreview } from "./_components/transcript-preview";
-import { TranscriptActionBar } from "./_components/transcript-action-bar";
-import { TranscriptHistoryPanel } from "./_components/transcript-history-panel";
+import {
+  TranscriptPreview,
+  TranscriptActionBar,
+  TranscriptHistoryPanel,
+} from "@/components/transcript";
 
 type PageProps = { params: Promise<{ studentId: string }> };
 

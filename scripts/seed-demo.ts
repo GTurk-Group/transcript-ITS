@@ -63,11 +63,11 @@ async function main() {
     console.log(`  skip  Institution (already exists)`);
   } else {
     const [inst] = await db.insert(institution).values({
-      name:    "University of Technology",
-      address: "P.O. Box 123, Accra, Ghana",
+      name:    "University of Education Winneba",
+      address: "P.O.BOX 25, WINNEBA - GHANA",
     }).returning({ id: institution.id });
     institutionId = inst.id;
-    console.log(`  ✓     University of Technology`);
+    console.log(`  ✓     University of Education Winneba`);
   }
 
   // ── 2. Registrar ───────────────────────────────────────────────────────────

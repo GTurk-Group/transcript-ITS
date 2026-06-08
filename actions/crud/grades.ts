@@ -37,7 +37,7 @@ import {
   resolveGradePoint,
   computeQualityPoints,
 } from "@/lib/gpa/scale";
-import { parseDbError, withAction } from "@/lib/actions/utils";
+import { parseDbError, withAction } from "@/actions/utils";
 import type { ActionState } from "@/types/auth";
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
