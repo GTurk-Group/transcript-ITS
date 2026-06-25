@@ -1,6 +1,6 @@
 # Transcript Management System (TMS)
 
-Production-grade Next.js 15 application for managing academic transcripts at higher education institutions.
+Production-grade Next.js application for managing academic transcripts at higher education institutions.
 
 ---
 
@@ -34,12 +34,13 @@ pnpm dev
 
 ## Environment variables
 
-| Variable | Required | Description |
-|---|---|---|
-| `DATABASE_URL` | **Yes** | PostgreSQL connection string |
-| `JWT_SECRET` | **Yes** (prod) | At least 32 chars. `openssl rand -base64 64` |
-| `PUPPETEER_EXECUTABLE_PATH` | Optional | Path to Chromium in Docker/Lambda |
-| `S3_BUCKET` / `AWS_*` | Optional | For production PDF storage |
+| Variable               | Required       | Description                                                         |
+| ---------------------- | -------------- | ------------------------------------------------------------------- |
+| `DATABASE_URL`         | **Yes**        | PostgreSQL connection string                                        |
+| `JWT_SECRET`           | **Yes** (prod) | At least 32 chars. `openssl rand -base64 64`                        |
+| `SUPER_ADMIN_EMAIL`    | Optional       | Creates the first admin account when no admins exist                |
+| `SUPER_ADMIN_PASSWORD` | Optional       | Password for the first admin account; must be at least 8 characters |
+| `SUPER_ADMIN_ROLE`     | Optional       | Defaults to `SUPER_ADMIN`                                           |
 
 See `.env.example` for all options with comments.
 
@@ -47,14 +48,14 @@ See `.env.example` for all options with comments.
 
 ## Tech stack
 
-| Layer | Choice | Why |
-|---|---|---|
-| Framework | Next.js 15 App Router | Server components, server actions, Edge middleware |
-| Database | PostgreSQL + Drizzle ORM | Type-safe queries, schema-first migrations |
-| Auth | JWT via `jose` + bcrypt sessions | Edge-compatible JWT; bcrypt isolated to Node.js only |
-| PDF | Puppeteer | Pixel-perfect A4 rendering from HTML |
-| Validation | Zod | Runtime schema validation for all form inputs and CSV rows |
-| Styling | Tailwind CSS v3 | Dark mode via `class` strategy |
+| Layer      | Choice                           | Why                                                        |
+| ---------- | -------------------------------- | ---------------------------------------------------------- |
+| Framework  | Next.js App Router               | Server components, server actions, Edge middleware         |
+| Database   | PostgreSQL + Drizzle ORM         | Type-safe queries, schema-first migrations                 |
+| Auth       | JWT via `jose` + bcrypt sessions | Edge-compatible JWT; bcrypt isolated to Node.js only       |
+| PDF        | Puppeteer                        | Pixel-perfect A4 rendering from HTML                       |
+| Validation | Zod                              | Runtime schema validation for all form inputs and CSV rows |
+| Styling    | Tailwind CSS v3                  | Dark mode via `class` strategy                             |
 
 ---
 
@@ -82,6 +83,7 @@ Server component / server action:
 ```
 
 **Three-layer enforcement:**
+
 1. Middleware (Edge) — redirect before page executes
 2. Layout RSC — `requireAuth()` runs on every layout render
 3. Page/action — `requirePermission()` checks the specific capability
@@ -108,6 +110,7 @@ CGPA = sumSemesters(semester rows) — O(semesters), not O(grade rows)
 ```
 
 **Key invariants:**
+
 - `gradePoint` and `computedQualityPoints` are **never accepted from client** — always server-computed
 - The partial unique index `WHERE is_superseded = false` enforces one active grade per (student, course, semester)
 - Grade corrections create a new row and set the old row's `is_superseded = true` in a transaction
@@ -230,20 +233,20 @@ tms/
 
 ## Permission matrix
 
-| Permission | SUPER_ADMIN | ADMIN | VIEWER |
-|---|:---:|:---:|:---:|
-| `manage_users` | ✓ | | |
-| `manage_institution` | ✓ | | |
-| `manage_registrar` | ✓ | | |
-| `manage_programmes` | ✓ | ✓ | |
-| `manage_students` | ✓ | ✓ | |
-| `manage_courses` | ✓ | ✓ | |
-| `enter_grades` | ✓ | ✓ | |
-| `bulk_upload` | ✓ | ✓ | |
-| `generate_transcripts` | ✓ | ✓ | |
-| `view_transcripts` | ✓ | ✓ | ✓ |
-| `view_grades` | ✓ | ✓ | ✓ |
-| `view_audit_logs` | ✓ | ✓ | |
+| Permission             | SUPER_ADMIN | ADMIN | VIEWER |
+| ---------------------- | :---------: | :---: | :----: |
+| `manage_users`         |      ✓      |       |        |
+| `manage_institution`   |      ✓      |       |        |
+| `manage_registrar`     |      ✓      |       |        |
+| `manage_programmes`    |      ✓      |   ✓   |        |
+| `manage_students`      |      ✓      |   ✓   |        |
+| `manage_courses`       |      ✓      |   ✓   |        |
+| `enter_grades`         |      ✓      |   ✓   |        |
+| `bulk_upload`          |      ✓      |   ✓   |        |
+| `generate_transcripts` |      ✓      |   ✓   |        |
+| `view_transcripts`     |      ✓      |   ✓   |   ✓    |
+| `view_grades`          |      ✓      |   ✓   |   ✓    |
+| `view_audit_logs`      |      ✓      |   ✓   |        |
 
 ---
 
@@ -266,38 +269,14 @@ tms/
 
 ---
 
-## Vercel PDF deployment
-
-Puppeteer with bundled Chromium (~300 MB) exceeds Vercel's 50 MB function limit.
-
-```bash
-pnpm remove puppeteer
-pnpm add puppeteer-core @sparticuz/chromium
-```
-
-Replace `lib/pdf/generator.ts` launch block:
-
-```typescript
-import chromium from "@sparticuz/chromium";
-import puppeteer from "puppeteer-core";
-
-browser = await puppeteer.launch({
-  args:           chromium.args,
-  executablePath: await chromium.executablePath(),
-  headless:       chromium.headless,
-});
-```
-
----
-
 ## Self-hosted PostgreSQL (non-Neon)
 
 Replace `db/index.ts`:
 
 ```typescript
-import { drizzle }  from "drizzle-orm/postgres-js";
-import postgres      from "postgres";
-import * as schema   from "./schema";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import * as schema from "./schema";
 
 const client = postgres(process.env.DATABASE_URL!);
 export const db = drizzle(client, { schema });
