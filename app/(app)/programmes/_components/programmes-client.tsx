@@ -17,13 +17,13 @@ import {
 
 type Props = { initial: Programme[] };
 
-const IDLE = { status: "idle" } as const;
+const IDLE: import("@/types/auth").ActionState<{ id: string }> = { status: "idle" };
 
 export function ProgrammesClient({ initial }: Props) {
   const toast = useToast();
 
   const [programmes, setOptimistic] = useOptimistic(initial);
-  const [search, setSearch]         = useState("");
+  const [search, setSearch] = useState("");
   const [isPending, startTransition] = useTransition();
 
   // Create modal
@@ -31,11 +31,11 @@ export function ProgrammesClient({ initial }: Props) {
   const [createState, createAction] = useActionState(createProgrammeAction, IDLE);
 
   // Edit modal
-  const [editing, setEditing]     = useState<Programme | null>(null);
-  const [editState, editAction]   = useActionState(updateProgrammeAction, IDLE);
+  const [editing, setEditing] = useState<Programme | null>(null);
+  const [editState, editAction] = useActionState(updateProgrammeAction, IDLE);
 
   // Delete confirm
-  const [deleting, setDeleting]   = useState<Programme | null>(null);
+  const [deleting, setDeleting] = useState<Programme | null>(null);
   const [delLoading, setDelLoading] = useState(false);
 
   const filtered = programmes.filter((p) => {
@@ -84,7 +84,7 @@ export function ProgrammesClient({ initial }: Props) {
     setDelLoading(false);
     setDeleting(null);
     if (result.status === "success") toast.success("Programme deleted");
-    else toast.error(result.error);
+    else if (result.status === "error") toast.error(result.error);
   }
 
   return (

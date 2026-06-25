@@ -245,13 +245,13 @@ export function validateRow(
       indexNumber: data.indexNumber,
       firstName: data.firstName,
       lastName: data.lastName,
-      dateOfBirth: data.dateOfBirth,
-      gender: data.gender,
+      dateOfBirth: data.dateOfBirth ?? "",
+      gender: data.gender ?? "",
       programmeId: programmeId!,
       programmeCode: data.programmeCode,
       level: data.level,
       entryYear: data.entryYear,
-      graduationYear: data.graduationYear,
+      graduationYear: data.graduationYear?.toString() ?? null,
     },
   };
 }

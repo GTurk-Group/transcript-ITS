@@ -1,23 +1,36 @@
 /**
- * GET /api/transcript/[id] — stream a generated transcript PDF.
+ * GET /api/transcript/[id]
  *
- * Auth: any authenticated role (view_transcripts permission).
- * Storage: reads from lib/storage (S3 in production, local in dev).
+ * Streams a generated transcript PDF to the client.
+ *
+ * Security:
+ *  - Verifies session via cookie (same JWT as the app)
+ *  - Asserts view_transcripts permission
+ *  - Reads the file from local storage (swap for S3 signed URL redirect in prod)
+ *
+ * In production with S3:
+ *  Instead of streaming bytes through this route, generate a pre-signed URL
+ *  (15 min TTL) and return a 302 redirect. This keeps PDF bytes off the
+ *  app server and lets S3 handle bandwidth.
  */
 
 import { type NextRequest, NextResponse } from "next/server";
+import { readFile } from "fs/promises";
+import { join } from "path";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { transcripts } from "@/db/schema";
 import { verifyToken } from "@/lib/auth/jwt";
 import { COOKIE_NAME } from "@/lib/auth/config";
-import { downloadPDF, getPresignedUrl } from "@/lib/storage";
+import { can } from "@/lib/auth/rbac";
+
+const TRANSCRIPT_DIR = join(process.cwd(), ".transcripts");
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
-) {
-  // ── Auth ──────────────────────────────────────────────────────────────────
+): Promise<NextResponse> {
+  // 1. Auth — read cookie directly (API routes don't use next/headers in Edge)
   const token = request.cookies.get(COOKIE_NAME)?.value;
   const session = token ? await verifyToken(token) : null;
 
@@ -25,61 +38,54 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = await params;
+  // 2. Permission check
+  if (!can(session, "view_transcripts")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
-  // ── Fetch record ──────────────────────────────────────────────────────────
-  const [record] = await db
-    .select({
-      id: transcripts.id,
-      transcriptNumber: transcripts.transcriptNumber,
-      fileKey: transcripts.fileKey,
-      status: transcripts.status,
-    })
+  // 3. Look up transcript record
+  const { id } = await params;
+  const rows = await db
+    .select()
     .from(transcripts)
     .where(eq(transcripts.id, id))
     .limit(1);
 
-  if (!record) {
+  if (rows.length === 0) {
     return NextResponse.json(
-      { error: "Transcript not found." },
+      { error: "Transcript not found" },
       { status: 404 },
     );
   }
 
-  if (record.status !== "COMPLETED" || !record.fileKey) {
-    return NextResponse.json(
-      {
-        error: "PDF not yet available. The transcript may still be generating.",
-      },
-      { status: 404 },
-    );
-  }
+  const transcript = rows[0];
 
-  // ── S3: redirect to pre-signed URL for direct download ───────────────────
-  const presignedUrl = await getPresignedUrl(record.fileKey, 300);
-  if (presignedUrl) {
-    return NextResponse.redirect(presignedUrl);
-  }
+  // 4. Read PDF file
+  //    In production: return a redirect to a pre-signed S3 URL instead.
+  //    return NextResponse.redirect(await generateSignedUrl(transcript.fileKey));
+  const fileKey = `${transcript.transcriptNumber}.pdf`;
 
-  // ── Local: stream bytes from .transcripts/ ────────────────────────────────
   let bytes: Buffer;
   try {
-    bytes = await downloadPDF(record.fileKey);
+    bytes = await readFile(join(TRANSCRIPT_DIR, fileKey));
   } catch {
     return NextResponse.json(
-      { error: "PDF file not found on disk." },
+      { error: "Transcript file not found. It may need to be regenerated." },
       { status: 404 },
     );
   }
 
-  const filename = `${record.transcriptNumber}.pdf`;
-
-  return new NextResponse(bytes, {
+  // 5. Stream PDF with correct headers
+  return new NextResponse(new Uint8Array(bytes), {
+    status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="${filename}"`,
-      "Content-Length": String(bytes.length),
-      "Cache-Control": "private, no-store",
+      "Content-Length": bytes.length.toString(),
+      // inline = open in browser, attachment = force download
+      "Content-Disposition": `inline; filename="${transcript.transcriptNumber}.pdf"`,
+      // Prevent caching — transcripts contain sensitive data
+      "Cache-Control": "private, no-cache, no-store, must-revalidate",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }

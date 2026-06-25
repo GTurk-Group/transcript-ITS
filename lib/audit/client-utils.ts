@@ -2,7 +2,7 @@
  * Client-safe audit log utilities.
  *
  * No DB imports — safe to use in Client Components.
- * The DB query functions stay in lib/audit-log.ts (server-only).
+ * The DB query functions stay in lib/audit/queries.ts (server-only).
  */
 
 export type ActionCategory =

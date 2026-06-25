@@ -11,8 +11,8 @@
 
 import { useState } from "react";
 import { AuditDiffViewer } from "./audit-diff-viewer";
-import { classifyAction, ACTION_CATEGORY_STYLES } from "@/lib/audit-log-utils";
-import type { AuditRow } from "@/lib/audit-log";
+import { classifyAction, ACTION_CATEGORY_STYLES } from "@/lib/audit/client-utils";
+import type { AuditRow } from "@/lib/audit/queries";
 
 type Props = { row: AuditRow };
 

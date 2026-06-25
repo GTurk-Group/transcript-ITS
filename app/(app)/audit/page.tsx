@@ -25,7 +25,7 @@ import {
   queryAuditStats,
   queryAuditActors,
   PAGE_SIZE,
-}                                 from "@/lib/audit-log";
+}                                 from "@/lib/audit/queries";
 import { AuditStatsBar }          from "./_components/audit-stats-bar";
 import { AuditFilterForm }        from "./_components/audit-filter-form";
 import { AuditTableRow }          from "./_components/audit-table-row";

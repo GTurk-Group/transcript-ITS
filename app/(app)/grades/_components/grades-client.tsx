@@ -13,7 +13,7 @@ import {
 
 type Student = { id: string; indexNumber: string; firstName: string; lastName: string; programmeName: string };
 
-const IDLE = { status: "idle" } as const;
+const IDLE: import("@/types/auth").ActionState<{ id: string }> = { status: "idle" };
 
 const GRADE_COLORS: Record<string, "green" | "blue" | "amber" | "red" | "gray"> = {
   "A": "green", "B+": "green", "B": "blue", "C+": "blue",
@@ -40,10 +40,10 @@ export function GradesClient({
 
   const filteredStudents = search.trim()
     ? students.filter((s) => {
-        const q = search.toLowerCase();
-        return s.indexNumber.toLowerCase().includes(q) ||
-          `${s.firstName} ${s.lastName}`.toLowerCase().includes(q);
-      }).slice(0, 8)
+      const q = search.toLowerCase();
+      return s.indexNumber.toLowerCase().includes(q) ||
+        `${s.firstName} ${s.lastName}`.toLowerCase().includes(q);
+    }).slice(0, 8)
     : [];
 
   async function loadStudentGrades(student: Student) {
@@ -78,7 +78,7 @@ export function GradesClient({
     if (r.status === "success") {
       toast.success("Grade deleted");
       if (selectedStudent) loadStudentGrades(selectedStudent);
-    } else {
+    } else if (r.status === "error") {
       toast.error(r.error);
     }
   }
@@ -112,7 +112,7 @@ export function GradesClient({
                   <p className="font-medium text-gray-900 dark:text-gray-100">
                     {s.firstName} {s.lastName}
                   </p>
-                  <p className="text-xs text-gray-500">{s.indexNumber} · {s.programmeName}</p>
+                  <p className="text-xs text-gray-500">{s.indexNumber} · {s.programmeName ?? "—"}</p>
                 </div>
               </button>
             ))}

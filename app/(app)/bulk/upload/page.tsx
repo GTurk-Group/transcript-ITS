@@ -11,7 +11,7 @@ import type { Metadata } from "next";
 import { requirePermission } from "@/lib/auth/rbac";
 import { BulkUploadForm }    from "./_components/upload-form";
 import { getProgrammes }     from "@/actions/crud/programmes";
-import { TemplateDownloadButton } from "@/app/(app)/templates/_components/template-download-button";
+import { TemplateDownloadButton } from "@/components/templates/template-download-button";
 
 export const metadata: Metadata = {
   title: "Bulk upload — Transcript Management System",

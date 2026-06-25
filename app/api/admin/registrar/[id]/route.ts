@@ -1,6 +1,6 @@
 /**
- * PATCH /api/admin/registrar/[id] — update registrar or toggle active
- * SUPER_ADMIN only. Activating one deactivates all others.
+ * PATCH /api/admin/registrar/[id] — update registrar details or toggle active
+ * SUPER_ADMIN only. Activating one registrar deactivates all others.
  */
 
 import { type NextRequest, NextResponse } from "next/server";
@@ -25,20 +25,21 @@ export async function PATCH(
 ) {
   const token = request.cookies.get(COOKIE_NAME)?.value;
   const session = token ? await verifyToken(token) : null;
+
   if (!session)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (session.role !== "SUPER_ADMIN")
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
+
   let body: z.infer<typeof bodySchema>;
   try {
     body = bodySchema.parse(await request.json());
   } catch (e) {
-    return NextResponse.json(
-      { error: e instanceof z.ZodError ? e.issues[0].message : "Invalid body" },
-      { status: 400 },
-    );
+    const msg =
+      e instanceof z.ZodError ? e.issues[0].message : "Invalid request body";
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
 
   const [existing] = await db
@@ -46,9 +47,12 @@ export async function PATCH(
     .from(registrar)
     .where(eq(registrar.id, id))
     .limit(1);
-  if (!existing)
-    return NextResponse.json({ error: "Registrar not found" }, { status: 404 });
 
+  if (!existing) {
+    return NextResponse.json({ error: "Registrar not found" }, { status: 404 });
+  }
+
+  // Enforce one active registrar at a time
   if (body.isActive === true) {
     await db
       .update(registrar)

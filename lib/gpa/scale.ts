@@ -10,6 +10,7 @@
  */
 
 /** Default grade point values on the 4.0 scale. */
+/** UEW Bachelor of Education scale (grade E = fail; F kept for legacy rows). */
 export const DEFAULT_GRADE_SCALE: Readonly<Record<string, number>> = {
   A: 4.0,
   "B+": 3.5,
@@ -18,7 +19,7 @@ export const DEFAULT_GRADE_SCALE: Readonly<Record<string, number>> = {
   C: 2.0,
   "D+": 1.5,
   D: 1.0,
-  F: 0.0,
+  E: 0.0,
 };
 
 /** Ordered list of valid grade letters (descending quality). */

@@ -11,7 +11,7 @@
  *   2. Institution row                 (1 row)
  *   3. Active registrar row            (0–1 rows)
  *   4a. GPA aggregates by semester     (N semester rows)  ← from lib/gpa/queries
- *   4b. Grade display rows             (M course rows)    ← from lib/queries/grades
+ *   4b. Grade display rows             (M course rows)    ← from lib/grades/queries
  *
  *   Queries 1, 2, 3, 4a, and 4b all fire in Promise.all — single roundtrip.
  *
@@ -46,8 +46,8 @@ import {
   formatGPA,
   formatSemesterLabel,
 } from "@/lib/gpa/compute";
-import { fetchStudentGradeRows } from "@/lib/queries/grades";
-import type { GradeDisplayRow } from "@/lib/queries/grades";
+import { fetchStudentGradeRows } from "@/lib/grades/queries";
+import type { GradeDisplayRow } from "@/lib/grades/queries";
 import type { SemesterAggregateRow } from "@/lib/gpa/types";
 import type {
   TranscriptObject,
@@ -283,12 +283,12 @@ export async function assembleTranscript(
     indexNumber: s.indexNumber,
     firstName: s.firstName,
     lastName: s.lastName,
-    fullName: `${s.lastName}, ${s.firstName}`,
-    dateOfBirth: s.dateOfBirth,
-    gender: s.gender,
+    fullName: `${s.firstName} ${s.lastName}`,
+    dateOfBirth: (s as any).dateOfBirth ?? null,
+    gender: (s as any).gender ?? null,
     level: s.level,
     entryYear: s.entryYear,
-    graduationYear: s.graduationYear,
+    graduationYear: s.graduationYear ?? null,
     status: s.status,
     programme: {
       id: s.programmeId,

@@ -13,7 +13,7 @@ import { requirePermission }   from "@/lib/auth/rbac";
 import { GradeUploadForm }     from "./_components/grade-upload-form";
 import { GRADE_LETTERS }       from "@/lib/gpa/scale";
 import { db }                  from "@/db";
-import { TemplateDownloadButton } from "@/app/(app)/templates/_components/template-download-button";
+import { TemplateDownloadButton } from "@/components/templates/template-download-button";
 import { semesters }           from "@/db/schema";
 
 export const metadata: Metadata = {

@@ -4,6 +4,7 @@
  *
  * Usage:
  *   pnpm seed:admin --email admin@example.com --password yourpassword
+ *   SUPER_ADMIN_EMAIL=admin@example.com SUPER_ADMIN_PASSWORD=yourpassword pnpm seed:admin
  *
  * Safe to run multiple times — skips if email already exists.
  * Requires DATABASE_URL in the environment (loads .env.local automatically).
@@ -12,11 +13,7 @@
  * need to export them manually before running.
  */
 
-import { config } from "dotenv";
-import { resolve } from "path";
-
-// Load .env.local before importing anything that reads process.env
-config({ path: resolve(process.cwd(), ".env") });
+import "./load-env";
 
 import { db } from "../db";
 import { admins } from "../db/schema";
@@ -31,8 +28,8 @@ async function main() {
     return idx !== -1 ? args[idx + 1] : undefined;
   };
 
-  const email = getArg("--email");
-  const password = getArg("--password");
+  const email = getArg("--email") ?? process.env.SUPER_ADMIN_EMAIL;
+  const password = getArg("--password") ?? process.env.SUPER_ADMIN_PASSWORD;
   const role = (getArg("--role") ?? "SUPER_ADMIN") as
     | "SUPER_ADMIN"
     | "ADMIN"
