@@ -7,7 +7,6 @@
  *   <thead>  — institution header (repeats every page)
  *   <tbody>  — semester blocks + class designation
  *   <tfoot>  — signature + footer (last page of academic record)
- *   GradingSchemePage — separate print page after the record
  */
 
 import { useMemo, useState } from "react";
@@ -25,7 +24,6 @@ import {
   TRANSCRIPT_FOOTER_LEGEND,
   type SemesterRunningTotals,
 } from "./display";
-import { GradingSchemePage } from "./grading-scheme-page";
 import Image from "next/image";
 
 export type TranscriptPreviewProps = {
@@ -355,8 +353,6 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
           </tbody>
         </table>
       </div>
-
-      <GradingSchemePage />
       </div>
     </>
   );
@@ -577,12 +573,6 @@ function PrintStyles() {
           overflow: visible !important;
           border: 2px solid #b71c1c !important;
           box-shadow: inset 0 0 0 2px #1a237e !important;
-        }
-
-        .grading-scheme-page {
-          position: relative;
-          width: 100%;
-          max-width: 100%;
         }
 
         thead { display: table-header-group; }
