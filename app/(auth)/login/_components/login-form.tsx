@@ -1,177 +1,89 @@
 "use client";
 
-/**
- * Login form — client component.
- *
- * Uses React 19 useActionState to connect to the loginAction server action.
- * Handles field-level validation errors, general errors, and loading state.
- */
-
 import { useActionState, useEffect, useRef } from "react";
 import { loginAction } from "@/actions/auth";
 import type { ActionState } from "@/types/auth";
 
 const initialState: ActionState = { status: "idle" };
 
-type LoginFormProps = {
-  /** Validated, relative callbackUrl from the page's searchParams. */
-  callbackUrl: string;
-};
-
-export function LoginForm({ callbackUrl }: LoginFormProps) {
-  const [state, formAction, isPending] = useActionState(
-    loginAction,
-    initialState
-  );
-
-  // Focus the email input on mount for keyboard accessibility
+export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
+  const [state, formAction, isPending] = useActionState(loginAction, initialState);
   const emailRef = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    emailRef.current?.focus();
-  }, []);
+  useEffect(() => { emailRef.current?.focus(); }, []);
 
-  const fieldErrors =
-    state.status === "error" ? state.fieldErrors : undefined;
-  const generalError =
-    state.status === "error" && !fieldErrors ? state.error : undefined;
+  const generalError = state.status === "error" && !state.fieldErrors ? state.error : undefined;
+  const fieldErrors = state.status === "error" ? state.fieldErrors : undefined;
 
   return (
     <form action={formAction} noValidate className="space-y-5">
-      {/* Hidden callbackUrl — validated server-side against open redirects */}
       <input type="hidden" name="callbackUrl" value={callbackUrl} />
 
-      {/* General error banner */}
       {generalError && (
-        <div
-          role="alert"
-          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-        >
+        <div role="alert"
+          className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+          <svg className="mt-0.5 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
           {generalError}
         </div>
       )}
 
-      {/* Email */}
-      <div>
-        <label
-          htmlFor="email"
-          className="mb-1.5 block text-sm font-medium text-gray-700"
-        >
-          Email address
-        </label>
+      <div className="space-y-1.5">
+        <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email address</label>
         <input
-          ref={emailRef}
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          disabled={isPending}
-          aria-describedby={
-            fieldErrors?.email ? "email-error" : undefined
-          }
-          aria-invalid={!!fieldErrors?.email}
+          ref={emailRef} id="email" name="email" type="email"
+          autoComplete="email" required disabled={isPending}
+          suppressHydrationWarning placeholder="admin@institution.edu"
           className={[
-            "block w-full rounded-md border px-3 py-2 text-sm shadow-sm",
-            "placeholder:text-gray-400 focus:outline-none focus:ring-2",
-            "disabled:cursor-not-allowed disabled:bg-gray-50 disabled:opacity-60",
+            "block w-full rounded-xl border px-4 py-3 text-sm transition-colors",
+            "placeholder:text-gray-400 dark:placeholder:text-gray-600 dark:bg-gray-900 dark:text-gray-100",
+            "focus:outline-none focus:ring-2 focus:ring-offset-0",
+            "disabled:cursor-not-allowed disabled:opacity-60",
             fieldErrors?.email
               ? "border-red-400 focus:ring-red-300"
-              : "border-gray-300 focus:ring-blue-500",
+              : "border-gray-300 focus:border-indigo-500 focus:ring-indigo-200 dark:border-gray-700",
           ].join(" ")}
-          placeholder="admin@institution.edu"
         />
-        {fieldErrors?.email && (
-          <p id="email-error" className="mt-1 text-xs text-red-600">
-            {fieldErrors.email[0]}
-          </p>
-        )}
+        {fieldErrors?.email && <p className="text-xs text-red-600">{fieldErrors.email[0]}</p>}
       </div>
 
-      {/* Password */}
-      <div>
-        <label
-          htmlFor="password"
-          className="mb-1.5 block text-sm font-medium text-gray-700"
-        >
-          Password
-        </label>
+      <div className="space-y-1.5">
+        <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
         <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          disabled={isPending}
-          aria-describedby={
-            fieldErrors?.password ? "password-error" : undefined
-          }
-          aria-invalid={!!fieldErrors?.password}
+          id="password" name="password" type="password"
+          autoComplete="current-password" required disabled={isPending}
+          suppressHydrationWarning placeholder="••••••••"
           className={[
-            "block w-full rounded-md border px-3 py-2 text-sm shadow-sm",
-            "placeholder:text-gray-400 focus:outline-none focus:ring-2",
-            "disabled:cursor-not-allowed disabled:bg-gray-50 disabled:opacity-60",
+            "block w-full rounded-xl border px-4 py-3 text-sm transition-colors",
+            "placeholder:text-gray-400 dark:placeholder:text-gray-600 dark:bg-gray-900 dark:text-gray-100",
+            "focus:outline-none focus:ring-2 focus:ring-offset-0",
+            "disabled:cursor-not-allowed disabled:opacity-60",
             fieldErrors?.password
               ? "border-red-400 focus:ring-red-300"
-              : "border-gray-300 focus:ring-blue-500",
+              : "border-gray-300 focus:border-indigo-500 focus:ring-indigo-200 dark:border-gray-700",
           ].join(" ")}
-          placeholder="••••••••"
         />
-        {fieldErrors?.password && (
-          <p id="password-error" className="mt-1 text-xs text-red-600">
-            {fieldErrors.password[0]}
-          </p>
-        )}
+        {fieldErrors?.password && <p className="text-xs text-red-600">{fieldErrors.password[0]}</p>}
       </div>
 
-      {/* Submit */}
-      <button
-        type="submit"
-        disabled={isPending}
+      <button type="submit" disabled={isPending}
         className={[
-          "flex w-full items-center justify-center rounded-md px-4 py-2.5",
-          "text-sm font-medium text-white shadow-sm transition-colors",
-          "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+          "mt-2 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3",
+          "text-sm font-semibold text-white shadow-sm transition-all",
+          "focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2",
           "disabled:cursor-not-allowed disabled:opacity-60",
-          isPending
-            ? "bg-blue-400"
-            : "bg-blue-600 hover:bg-blue-700 active:bg-blue-800",
-        ].join(" ")}
-      >
+          isPending ? "bg-indigo-400" : "bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800",
+        ].join(" ")}>
         {isPending ? (
           <>
-            <LoadingSpinner />
-            <span className="ml-2">Signing in…</span>
+            <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Signing in…
           </>
-        ) : (
-          "Sign in"
-        )}
+        ) : "Sign in"}
       </button>
     </form>
-  );
-}
-
-function LoadingSpinner() {
-  return (
-    <svg
-      className="h-4 w-4 animate-spin"
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-      />
-    </svg>
   );
 }

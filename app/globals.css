@@ -2,7 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Toast slide-in animation ─────────────────────────────────────────────── */
+/* ─── Design tokens ────────────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    --accent: 220 89% 56%; /* indigo-600 */
+    --accent-light: 239 68% 97%; /* indigo-50  */
+    --radius: 0.75rem;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100;
+  }
+}
+
+/* ─── Focus ring ────────────────────────────────────────────────────────────── */
+@layer base {
+  *:focus-visible {
+    outline: 2px solid hsl(var(--accent));
+    outline-offset: 2px;
+  }
+}
+
+/* ─── Toast animation ───────────────────────────────────────────────────────── */
 @keyframes slide-in {
   from {
     opacity: 0;
@@ -14,41 +40,92 @@
   }
 }
 
-/* ─── Print: hide everything except the transcript document ────────────────── */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.2s ease-out both;
+}
+.animate-fade-in {
+  animation: fade-in 0.15s ease-out both;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(203 213 225) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgb(203 213 225);
+    border-radius: 9999px;
+  }
+
+  .dark .scrollbar-thin {
+    scrollbar-color: rgb(55 65 81) transparent;
+  }
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgb(55 65 81);
+  }
+}
+
+/* ─── Print styles ──────────────────────────────────────────────────────────── */
 @media print {
-  /* App shell elements added by layout — hide on print */
   aside,
   nav,
   header,
   [data-print-hide] {
     display: none !important;
   }
-
-  /* Prevent page breaks inside table rows */
   tr {
     page-break-inside: avoid;
   }
-
-  /* Ensure backgrounds print (Chromium needs this for colored headers) */
   * {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 }
 
-/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
-@layer utilities {
-  /* Thin scrollbar for audit log diffs and bulk upload tables */
-  .scrollbar-thin {
-    scrollbar-width: thin;
-    scrollbar-color: rgb(156 163 175) transparent;
+/* ─── Table styles ──────────────────────────────────────────────────────────── */
+@layer components {
+  .tms-table {
+    @apply min-w-full divide-y divide-gray-100 dark:divide-gray-800;
   }
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
+  .tms-thead {
+    @apply bg-gray-50 dark:bg-gray-800/50;
   }
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: rgb(156 163 175);
-    border-radius: 2px;
+  .tms-th {
+    @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400;
+  }
+  .tms-td {
+    @apply px-4 py-3.5 text-sm text-gray-700 dark:text-gray-300;
+  }
+  .tms-tr {
+    @apply transition-colors hover:bg-gray-50/60 dark:hover:bg-gray-800/30;
+  }
+}
+
+/* ─── Card styles ───────────────────────────────────────────────────────────── */
+@layer components {
+  .tms-card {
+    @apply rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900;
+  }
+  .tms-panel {
+    @apply rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900;
   }
 }
