@@ -1,69 +1,46 @@
 # Transcript Management System (TMS)
 
-Production-grade Next.js 15 application for managing academic transcripts at higher education institutions.
+Production-grade Next.js application for managing academic transcripts at higher education institutions.
 
 ---
 
 ## Quick start
 
-### Local development (PostgreSQL in Docker)
-
-Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) and Node 20+.
-
 ```bash
-# 1. Install dependencies
+# 1. Clone and install
+git clone <repo>
+cd tms
 pnpm install
 
 # 2. Configure environment
 cp .env.example .env.local
-# Edit .env.local — set JWT_SECRET (≥32 chars). DATABASE_URL defaults to local Postgres.
+# Edit .env.local — set JWT_SECRET and DATABASE_URL at minimum
 
-# 3. Start PostgreSQL
-pnpm db:up
-# Wait until healthy: pnpm db:logs
-
-# 4. Push schema to the database
+# 3. Push schema to database
 pnpm db:push
 
-# 5. Create the first SUPER_ADMIN
+# 4. Create the first SUPER_ADMIN
 pnpm seed:admin --email admin@example.com --password changeme123
 
-# 6. (Optional) Seed demo data
+# 5. (Optional) Seed demo data
 pnpm seed:demo
 
-# 7. Start dev server
+# 6. Start dev server
 pnpm dev
 # → http://localhost:3000
-```
-
-Stop Postgres when finished: `pnpm db:down`. Data persists in the `tms_postgres_data` Docker volume.
-
-Postgres listens on **port 5433** (not 5432) so it does not clash with an existing local PostgreSQL install.
-
-### Cloud database (Neon, Supabase, etc.)
-
-```bash
-pnpm install
-cp .env.example .env.local
-# Set DATABASE_URL to your hosted connection string (usually includes sslmode=require)
-pnpm db:push
-pnpm seed:admin --email admin@example.com --password changeme123
-pnpm dev
 ```
 
 ---
 
 ## Environment variables
 
-| Variable | Required | Description |
-|---|---|---|
-| `DATABASE_URL` | **Yes** | PostgreSQL connection string |
-| `JWT_SECRET` | **Yes** (prod) | At least 32 chars. `openssl rand -base64 64` |
-| `SUPER_ADMIN_EMAIL` | Optional | Creates the first admin account when no admins exist |
-| `SUPER_ADMIN_PASSWORD` | Optional | Password for the first admin account; must be at least 8 characters |
-| `SUPER_ADMIN_ROLE` | Optional | Defaults to `SUPER_ADMIN` |
-| `PUPPETEER_EXECUTABLE_PATH` | Optional | Path to Chromium in Docker/Lambda |
-| `S3_BUCKET` / `AWS_*` | Optional | For production PDF storage |
+| Variable               | Required       | Description                                                         |
+| ---------------------- | -------------- | ------------------------------------------------------------------- |
+| `DATABASE_URL`         | **Yes**        | PostgreSQL connection string                                        |
+| `JWT_SECRET`           | **Yes** (prod) | At least 32 chars. `openssl rand -base64 64`                        |
+| `SUPER_ADMIN_EMAIL`    | Optional       | Creates the first admin account when no admins exist                |
+| `SUPER_ADMIN_PASSWORD` | Optional       | Password for the first admin account; must be at least 8 characters |
+| `SUPER_ADMIN_ROLE`     | Optional       | Defaults to `SUPER_ADMIN`                                           |
 
 See `.env.example` for all options with comments.
 
@@ -71,14 +48,14 @@ See `.env.example` for all options with comments.
 
 ## Tech stack
 
-| Layer | Choice | Why |
-|---|---|---|
-| Framework | Next.js 15 App Router | Server components, server actions, Edge middleware |
-| Database | PostgreSQL + Drizzle ORM | Type-safe queries, schema-first migrations |
-| Auth | JWT via `jose` + bcrypt sessions | Edge-compatible JWT; bcrypt isolated to Node.js only |
-| PDF | Puppeteer | Pixel-perfect A4 rendering from HTML |
-| Validation | Zod | Runtime schema validation for all form inputs and CSV rows |
-| Styling | Tailwind CSS v3 | Dark mode via `class` strategy |
+| Layer      | Choice                           | Why                                                        |
+| ---------- | -------------------------------- | ---------------------------------------------------------- |
+| Framework  | Next.js App Router               | Server components, server actions, Edge middleware         |
+| Database   | PostgreSQL + Drizzle ORM         | Type-safe queries, schema-first migrations                 |
+| Auth       | JWT via `jose` + bcrypt sessions | Edge-compatible JWT; bcrypt isolated to Node.js only       |
+| PDF        | Puppeteer                        | Pixel-perfect A4 rendering from HTML                       |
+| Validation | Zod                              | Runtime schema validation for all form inputs and CSV rows |
+| Styling    | Tailwind CSS v3                  | Dark mode via `class` strategy                             |
 
 ---
 
@@ -106,6 +83,7 @@ Server component / server action:
 ```
 
 **Three-layer enforcement:**
+
 1. Middleware (Edge) — redirect before page executes
 2. Layout RSC — `requireAuth()` runs on every layout render
 3. Page/action — `requirePermission()` checks the specific capability
@@ -132,6 +110,7 @@ CGPA = sumSemesters(semester rows) — O(semesters), not O(grade rows)
 ```
 
 **Key invariants:**
+
 - `gradePoint` and `computedQualityPoints` are **never accepted from client** — always server-computed
 - The partial unique index `WHERE is_superseded = false` enforces one active grade per (student, course, semester)
 - Grade corrections create a new row and set the old row's `is_superseded = true` in a transaction
@@ -169,7 +148,9 @@ generateTranscript(studentId, adminId, headers)
   └── logAuditEvent (full academic snapshot — permanent record)
 
 Then in server action:
-  └── recordTranscriptAction → browser print from TranscriptPreview
+  ├── renderTranscriptHtml(transcript) → HTML string
+  ├── renderHTMLToPDF(html)            → { bytes, checksum, sizeBytes }
+  └── writeTranscriptFile(fileKey, bytes) → .transcripts/ or S3
 ```
 
 ---
@@ -214,28 +195,28 @@ tms/
 │
 ├── actions/
 │   ├── auth.ts                ← loginAction, logoutAction
-│   ├── transcripts.ts         ← recordTranscriptAction
-│   ├── utils.ts               ← parseDbError, withAction (shared by CRUD)
+│   ├── transcripts.ts         ← generateTranscriptAction
 │   └── crud/                  ← createXAction, updateXAction, deleteXAction per entity
 │
 ├── components/
 │   ├── ui/index.tsx           ← Toast, Modal, Button, Table, Badge, Field, Input...
-│   ├── layout/app-shell.tsx   ← sidebar, dark mode, breadcrumb, mobile drawer
-│   ├── transcript/            ← printable preview, action bar, grading scheme page
-│   └── templates/             ← CSV template download + preview widgets
+│   └── layout/app-shell.tsx   ← sidebar, dark mode, breadcrumb, mobile drawer
 │
 ├── lib/
 │   ├── auth/                  ← config, jwt (jose), passwords (bcrypt), rbac, session
+│   ├── gpa.ts                 ← re-export barrel → lib/gpa/ (TS resolution fix)
 │   ├── gpa/                   ← queries (SQL agg), compute, scale, types
-│   ├── grades/queries.ts      ← grade row fetches for transcript tables
-│   ├── transcript/            ← assembler, generator, checksum, types (server domain)
+│   ├── transcript/            ← assembler, generator, checksum, types
 │   ├── bulk/                  ← student: parser, validator, pipeline, report
 │   ├── bulk/grades/           ← grade: parser, validator, pipeline, report
+│   ├── pdf/                   ← generator (Puppeteer), template (HTML→TranscriptObject)
 │   ├── templates/             ← CSV template generators (BOM+CRLF)
-│   └── audit/                 ← write.ts, queries.ts, client-utils.ts
+│   ├── audit.ts               ← logAuditEvent, extractRequestMeta
+│   ├── audit-log.ts           ← queryAuditRows, queryAuditStats, classification
+│   └── actions/utils.ts       ← parseDbError, withAction
 │
 ├── db/
-│   ├── index.ts               ← Drizzle + postgres-js client
+│   ├── index.ts               ← Drizzle + Neon HTTP client
 │   ├── schema.ts              ← all tables, enums, indexes
 │   └── migrations/
 │       └── 0001_initial.sql   ← complete schema DDL
@@ -252,20 +233,20 @@ tms/
 
 ## Permission matrix
 
-| Permission | SUPER_ADMIN | ADMIN | VIEWER |
-|---|:---:|:---:|:---:|
-| `manage_users` | ✓ | | |
-| `manage_institution` | ✓ | | |
-| `manage_registrar` | ✓ | | |
-| `manage_programmes` | ✓ | ✓ | |
-| `manage_students` | ✓ | ✓ | |
-| `manage_courses` | ✓ | ✓ | |
-| `enter_grades` | ✓ | ✓ | |
-| `bulk_upload` | ✓ | ✓ | |
-| `generate_transcripts` | ✓ | ✓ | |
-| `view_transcripts` | ✓ | ✓ | ✓ |
-| `view_grades` | ✓ | ✓ | ✓ |
-| `view_audit_logs` | ✓ | ✓ | |
+| Permission             | SUPER_ADMIN | ADMIN | VIEWER |
+| ---------------------- | :---------: | :---: | :----: |
+| `manage_users`         |      ✓      |       |        |
+| `manage_institution`   |      ✓      |       |        |
+| `manage_registrar`     |      ✓      |       |        |
+| `manage_programmes`    |      ✓      |   ✓   |        |
+| `manage_students`      |      ✓      |   ✓   |        |
+| `manage_courses`       |      ✓      |   ✓   |        |
+| `enter_grades`         |      ✓      |   ✓   |        |
+| `bulk_upload`          |      ✓      |   ✓   |        |
+| `generate_transcripts` |      ✓      |   ✓   |        |
+| `view_transcripts`     |      ✓      |   ✓   |   ✓    |
+| `view_grades`          |      ✓      |   ✓   |   ✓    |
+| `view_audit_logs`      |      ✓      |   ✓   |        |
 
 ---
 
@@ -279,6 +260,7 @@ tms/
 ☐ Add at least one institution record via /admin/institution
 ☐ Add at least one registrar via /admin/registrar
 ☐ For Vercel: swap puppeteer for puppeteer-core + @sparticuz/chromium
+☐ For S3 PDF storage: implement writeTranscriptFile in actions/transcripts.ts
 ☐ Remove PUPPETEER_EXECUTABLE_PATH from env if using @sparticuz/chromium
 ☐ Confirm tailwind.config.ts has darkMode: "class"
 ☐ Confirm app/layout.tsx has suppressHydrationWarning on <html>
@@ -287,14 +269,22 @@ tms/
 
 ---
 
-## Database
+## Self-hosted PostgreSQL (non-Neon)
 
-The app uses `postgres` (postgres-js) via `db/index.ts`. SSL is enabled automatically for Neon/Supabase URLs; local Docker Postgres uses no SSL.
+Replace `db/index.ts`:
 
-| Command | Purpose |
-|---|---|
-| `pnpm db:up` | Start local Postgres (`docker compose`) |
-| `pnpm db:down` | Stop local Postgres |
-| `pnpm db:push` | Apply schema in development |
-| `pnpm db:migrate` | Run SQL migrations (production) |
-| `pnpm db:studio` | Open Drizzle Studio |
+```typescript
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import * as schema from "./schema";
+
+const client = postgres(process.env.DATABASE_URL!);
+export const db = drizzle(client, { schema });
+```
+
+```bash
+pnpm remove @neondatabase/serverless drizzle-orm
+pnpm add postgres drizzle-orm
+```
+
+Update `drizzle.config.ts` dialect: still `"postgresql"` — no change needed.

@@ -75,7 +75,11 @@ export async function POST(req: NextRequest) {
     action: "CREATE_ADMIN",
     entity: "admins",
     entityId: created.id,
-    after: { email: created.email, role: created.role, isActive: created.isActive },
+    after: {
+      email: created.email,
+      role: created.role,
+      isActive: created.isActive,
+    },
     ...extractRequestMeta(req.headers),
   });
 
