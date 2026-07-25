@@ -1,15 +1,16 @@
 "use server";
 
 /**
- * Authentication server actions.
+ * actions/auth.ts — Authentication server actions.
  *
- * loginAction    — verifies credentials, enforces rate limiting, creates session
- * logoutAction   — clears session cookie + audit log
- * changePasswordAction — allows admins to change their own password
+ * loginAction         — validates credentials, enforces rate limiting, creates session
+ * logoutAction        — clears session cookie, logs to audit
+ * changePasswordAction — lets admins change their own password
  */
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 import { db } from "@/db";
 import { admins } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -18,7 +19,6 @@ import {
   hashPassword,
   DUMMY_HASH,
 } from "@/lib/auth/passwords";
-import { ensureBootstrapAdmin } from "@/lib/auth/bootstrap-admin";
 import { createSession, clearSession, getSession } from "@/lib/auth/session";
 import { logAuditEvent, extractRequestMeta } from "@/lib/audit";
 import { rateLimit, clearRateLimit, loginRateLimitKey } from "@/lib/rate-limit";
@@ -35,12 +35,15 @@ export async function loginAction(
     .trim();
   const password = String(formData.get("password") ?? "");
 
+  if (!email || !password) {
+    return { status: "error", error: "Email and password are required." };
+  }
+
   const headerStore = await headers();
   const ip =
     headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     headerStore.get("x-real-ip") ??
     "unknown";
-  const meta = extractRequestMeta(headerStore);
 
   // ── Rate limit: 5 attempts per 15 minutes per IP ──────────────────────────
   const limit = await rateLimit(loginRateLimitKey(ip), {
@@ -55,25 +58,32 @@ export async function loginAction(
     };
   }
 
-  // ── Validate inputs ───────────────────────────────────────────────────────
-  if (!email || !password) {
-    return { status: "error", error: "Email and password are required." };
-  }
-
   // ── Fetch admin ───────────────────────────────────────────────────────────
-  let [admin] = await db
-    .select()
-    .from(admins)
-    .where(eq(admins.email, email))
-    .limit(1);
-
-  if (!admin) {
-    await ensureBootstrapAdmin(email);
-    [admin] = await db
+  let admin: typeof admins.$inferSelect | undefined;
+  try {
+    const rows = await db
       .select()
       .from(admins)
       .where(eq(admins.email, email))
       .limit(1);
+    admin = rows[0];
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    // Give a helpful message for common DB errors
+    if (
+      msg.includes("ECONNREFUSED") ||
+      String(err).includes("AggregateError")
+    ) {
+      return {
+        status: "error",
+        error:
+          "Cannot connect to the database. Check that PostgreSQL is running and DATABASE_URL is correct.",
+      };
+    }
+    return {
+      status: "error",
+      error: "A database error occurred. Please try again.",
+    };
   }
 
   // Timing-safe: always run bcrypt even when no user found
@@ -91,7 +101,7 @@ export async function loginAction(
     };
   }
 
-  // ── Success — clear rate limit counter and create session ─────────────────
+  // ── Success — clear rate limit and create session ─────────────────────────
   await clearRateLimit(loginRateLimitKey(ip));
 
   await createSession({
@@ -106,7 +116,7 @@ export async function loginAction(
     entity: "admins",
     entityId: admin.id,
     after: { email: admin.email, role: admin.role },
-    ...meta,
+    ...extractRequestMeta(headerStore),
   });
 
   redirect("/dashboard");
@@ -124,13 +134,30 @@ export async function logoutAction(): Promise<void> {
       entity: "admins",
       entityId: session.adminId,
       ...extractRequestMeta(headerStore),
-    });
+    }).catch(() => {}); // Non-fatal
   }
   await clearSession();
   redirect("/login");
 }
 
 // ─── Change password ──────────────────────────────────────────────────────────
+
+const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z
+      .string()
+      .min(8, "New password must be at least 8 characters"),
+    confirmPassword: z.string().min(1, "Please confirm your new password"),
+  })
+  .refine((d) => d.newPassword === d.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  })
+  .refine((d) => d.currentPassword !== d.newPassword, {
+    message: "New password must be different from your current password",
+    path: ["newPassword"],
+  });
 
 export async function changePasswordAction(
   _prev: ActionState,
@@ -139,30 +166,23 @@ export async function changePasswordAction(
   const session = await getSession();
   if (!session) return { status: "error", error: "Not authenticated." };
 
-  const current = String(formData.get("currentPassword") ?? "");
-  const next = String(formData.get("newPassword") ?? "");
-  const confirm = String(formData.get("confirmPassword") ?? "");
+  const parsed = changePasswordSchema.safeParse({
+    currentPassword: formData.get("currentPassword"),
+    newPassword: formData.get("newPassword"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
 
-  if (!current || !next || !confirm) {
-    return { status: "error", error: "All fields are required." };
-  }
-  if (next.length < 8) {
+  if (!parsed.success) {
     return {
       status: "error",
-      error: "New password must be at least 8 characters.",
-    };
-  }
-  if (next !== confirm) {
-    return { status: "error", error: "New passwords do not match." };
-  }
-  if (current === next) {
-    return {
-      status: "error",
-      error: "New password must be different from the current password.",
+      error: parsed.error.issues[0].message,
+      fieldErrors: parsed.error.flatten().fieldErrors,
     };
   }
 
-  // Fetch current hash
+  const { currentPassword, newPassword } = parsed.data;
+
+  // Fetch and verify current password
   const [admin] = await db
     .select({ id: admins.id, password: admins.password })
     .from(admins)
@@ -171,12 +191,11 @@ export async function changePasswordAction(
 
   if (!admin) return { status: "error", error: "Account not found." };
 
-  const valid = await comparePassword(current, admin.password);
+  const valid = await comparePassword(currentPassword, admin.password);
   if (!valid)
     return { status: "error", error: "Current password is incorrect." };
 
-  const hashed = await hashPassword(next);
-
+  const hashed = await hashPassword(newPassword);
   await db
     .update(admins)
     .set({ password: hashed })

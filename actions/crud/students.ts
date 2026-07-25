@@ -1,10 +1,5 @@
 "use server";
 
-/**
- * Student CRUD server actions — updated with dateOfBirth and gender fields.
- * Grade security contract: all computed values server-side only.
- */
-
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
@@ -21,6 +16,7 @@ const studentSchema = z.object({
   indexNumber: z.string().min(1).max(100),
   firstName: z.string().min(1).max(100),
   lastName: z.string().min(1).max(100),
+  middleName: z.string().nullable().optional(),
   dateOfBirth: z.string().nullable().optional(),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).nullable().optional(),
   programmeId: z.string().uuid(),
@@ -62,6 +58,7 @@ export async function createStudentAction(
     indexNumber: str(formData, "indexNumber"),
     firstName: str(formData, "firstName"),
     lastName: str(formData, "lastName"),
+    middleName: str(formData, "middleName"),
     dateOfBirth: str(formData, "dateOfBirth"),
     gender: str(formData, "gender"),
     programmeId: str(formData, "programmeId"),
@@ -84,13 +81,14 @@ export async function createStudentAction(
       .values({
         indexNumber: d.indexNumber,
         firstName: d.firstName,
+        middleName: d.middleName ?? null,
         lastName: d.lastName,
         dateOfBirth: d.dateOfBirth ?? null,
         gender: d.gender ?? null,
         programmeId: d.programmeId,
         level: d.level,
         entryYear: d.entryYear,
-        graduationYear: d.graduationYear?.toString() ?? null,
+        graduationYear: d.graduationYear ?? null,
         email: d.email ?? null,
         phoneNumber: d.phoneNumber ?? null,
         status: "ACTIVE",
@@ -137,6 +135,7 @@ export async function updateStudentAction(
     indexNumber: str(formData, "indexNumber"),
     firstName: str(formData, "firstName"),
     lastName: str(formData, "lastName"),
+    middleName: str(formData, "middleName"),
     dateOfBirth: str(formData, "dateOfBirth"),
     gender: str(formData, "gender"),
     programmeId: str(formData, "programmeId"),
@@ -177,9 +176,10 @@ export async function updateStudentAction(
         ...(fields.level !== undefined && { level: fields.level }),
         ...(fields.entryYear !== undefined && { entryYear: fields.entryYear }),
         ...(fields.status !== undefined && { status: fields.status }),
+        middleName: fields.middleName ?? null,
         dateOfBirth: fields.dateOfBirth ?? null,
         gender: fields.gender ?? null,
-        graduationYear: fields.graduationYear?.toString() ?? null,
+        graduationYear: fields.graduationYear ?? null,
         email: fields.email ?? null,
         phoneNumber: fields.phoneNumber ?? null,
       })
@@ -295,6 +295,7 @@ export async function getStudents() {
       id: students.id,
       indexNumber: students.indexNumber,
       firstName: students.firstName,
+      middleName: students.middleName,
       lastName: students.lastName,
       dateOfBirth: students.dateOfBirth,
       gender: students.gender,
@@ -319,6 +320,7 @@ export async function getStudentById(id: string) {
       id: students.id,
       indexNumber: students.indexNumber,
       firstName: students.firstName,
+      middleName: students.middleName,
       lastName: students.lastName,
       dateOfBirth: students.dateOfBirth,
       gender: students.gender,

@@ -22,9 +22,10 @@ export function formatTranscriptDateOfBirth(value: string | null | undefined): s
 /** AUG2013 - JUL2017 */
 export function formatStudyPeriod(
   entryYear: number,
-  graduationYear: string | null | undefined,
+  graduationYear: number | string | null | undefined,
 ): string {
-  const endYear = graduationYear?.trim();
+  const endYear =
+    graduationYear == null ? null : String(graduationYear).trim();
   if (!endYear) return `AUG${entryYear}`;
   return `AUG${entryYear} - JUL${endYear}`;
 }

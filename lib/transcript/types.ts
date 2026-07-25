@@ -110,14 +110,15 @@ export type TranscriptStudent = {
   id: string;
   indexNumber: string;
   firstName: string;
+  middleName: string | null;
   lastName: string;
-  /** firstName + " " + lastName */
+  /** firstName + middleName? + lastName */
   fullName: string;
-  dateOfBirth: string;
-  gender: string;
+  dateOfBirth: string | null;
+  gender: string | null;
   level: number;
   entryYear: number;
-  graduationYear: string | null;
+  graduationYear: number | null;
   status: string;
   programme: {
     id: string;
@@ -153,7 +154,7 @@ export type TranscriptObject = {
   transcriptNumber: string;
   /** ISO-8601 timestamp — frozen at generation time for the SHA-256 checksum */
   generatedAt: string;
-  generatedByAdminId?: string;
+  generatedByAdminId: string;
 
   // ── Entities ─────────────────────────────────────────────────────────────
   student: TranscriptStudent;

@@ -27,7 +27,9 @@ import {
 import Image from "next/image";
 
 export type TranscriptPreviewProps = {
-  transcript: TranscriptObject;
+  transcript: Omit<TranscriptObject, "generatedByAdminId"> & {
+    generatedByAdminId?: string;
+  };
   latestRecordId: string | null;
 };
 
