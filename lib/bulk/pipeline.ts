@@ -12,7 +12,7 @@
 
 import { db } from "@/db";
 import { students } from "@/db/schema";
-import { parseDbError } from "@/lib/actions/utils";
+import { parseDbError } from "@/actions/utils";
 import type {
   ValidStudentRow,
   RowFailure as StudentRowFailure,
@@ -42,7 +42,7 @@ async function insertBatch(batch: ValidStudentRow[]): Promise<BatchResult> {
         programmeId: row.programmeId,
         level: row.level,
         entryYear: row.entryYear,
-        graduationYear: row.graduationYear!,
+        graduationYear: row.graduationYear ?? null,
         email: row.email,
         phoneNumber: row.phoneNumber,
         status: "ACTIVE" as const,
@@ -72,7 +72,7 @@ async function insertBatchRowByRow(
         programmeId: row.programmeId,
         level: row.level,
         entryYear: row.entryYear,
-        graduationYear: row.graduationYear!,
+        graduationYear: row.graduationYear ?? null,
         email: row.email ?? null,
         phoneNumber: row.phoneNumber ?? null,
         status: "ACTIVE" as const,

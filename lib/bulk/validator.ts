@@ -251,7 +251,7 @@ export function validateRow(
       programmeCode: data.programmeCode,
       level: data.level,
       entryYear: data.entryYear,
-      graduationYear: data.graduationYear?.toString() ?? null,
+      graduationYear: data.graduationYear ?? null,
     },
   };
 }

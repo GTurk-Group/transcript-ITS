@@ -1,9 +1,23 @@
+/**
+ * db/index.ts — local PostgreSQL + Neon compatible.
+ *
+ * Local dev:  postgresql://postgres:password@localhost:5432/tms_dev
+ * Neon/prod:  postgresql://user:pass@ep-xxx-pooler.neon.tech/tms?sslmode=require
+ *
+ * SSL is enabled automatically when the connection string contains
+ * "sslmode=require" or "neon.tech". Local PostgreSQL needs no SSL.
+ */
+
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
 
 if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL is not set. Copy .env.example to .env.local.");
+  throw new Error(
+    "DATABASE_URL is not set.\n" +
+      "Local dev: postgresql://postgres:password@localhost:5432/tms_dev\n" +
+      "Copy .env.example to .env.local and fill in the value.",
+  );
 }
 
 declare global {
@@ -16,11 +30,10 @@ declare global {
 function createDb() {
   const url = process.env.DATABASE_URL!;
 
-  // Use SSL whenever the connection string requires it (Neon, Supabase, etc.)
-  // or when running in production. Local PostgreSQL installs don't need SSL.
   const requiresSsl =
     url.includes("sslmode=require") ||
     url.includes("neon.tech") ||
+    url.includes("supabase.co") ||
     process.env.NODE_ENV === "production";
 
   const client = postgres(url, {

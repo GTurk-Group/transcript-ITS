@@ -14,8 +14,8 @@ import type { Metadata } from "next";
 import { requirePermission } from "@/lib/auth/rbac";
 import { TEMPLATE_SPECS } from "@/lib/templates";
 import { DEFAULT_GRADE_SCALE } from "@/lib/gpa/scale";
-import { TemplateDownloadButton } from "./_components/template-download-button";
-import { TemplatePreviewTable } from "./_components/template-preview-table";
+import { TemplateDownloadButton } from "@/components/templates/template-download-button";
+import { TemplatePreviewTable } from "@/components/templates/template-preview-table";
 
 export const metadata: Metadata = {
   title: "Templates — Transcript Management System",

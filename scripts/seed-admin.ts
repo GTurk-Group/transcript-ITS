@@ -13,11 +13,7 @@
  * need to export them manually before running.
  */
 
-import { config } from "dotenv";
-import { resolve } from "path";
-
-// Load .env.local before importing anything that reads process.env
-config({ path: resolve(process.cwd(), ".env") });
+import "./load-env";
 
 import { db } from "../db";
 import { admins } from "../db/schema";

@@ -9,7 +9,7 @@
 
 import { db } from "@/db";
 import { grades } from "@/db/schema";
-import { parseDbError } from "@/lib/actions/utils";
+import { parseDbError } from "@/actions/utils";
 import type { ValidGradeRow, GradeRowFailure, GradeBulkResult } from "./types";
 
 const BATCH_SIZE = 100;

@@ -14,7 +14,7 @@ import { eq } from "drizzle-orm";
 import { requireAuth, can } from "@/lib/auth/rbac";
 import { db } from "@/db";
 import { students, programmes } from "@/db/schema";
-import { fetchStudentGradeRows } from "@/lib/queries/grades";
+import { fetchStudentGradeRows } from "@/lib/grades/queries";
 import { calculateCGPA } from "@/lib/gpa";
 import { formatGPA, formatSemesterLabel } from "@/lib/gpa";
 import type { Metadata } from "next";

@@ -5,7 +5,7 @@
  * No client-side state needed.
  */
 
-import type { AuditStats } from "@/lib/audit-log";
+import type { AuditStats } from "@/lib/audit/queries";
 
 type Props = { stats: AuditStats };
 

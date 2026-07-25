@@ -46,8 +46,10 @@ import {
   formatGPA,
   formatSemesterLabel,
 } from "@/lib/gpa/compute";
-import { fetchStudentGradeRows } from "@/lib/queries/grades";
-import type { GradeDisplayRow } from "@/lib/queries/grades";
+import {
+  fetchStudentGradeRows,
+  type GradeDisplayRow,
+} from "@/lib/grades/queries";
 import type { SemesterAggregateRow } from "@/lib/gpa/types";
 import type {
   TranscriptObject,
@@ -101,6 +103,7 @@ export async function assembleTranscript(
         id: students.id,
         indexNumber: students.indexNumber,
         firstName: students.firstName,
+        middleName: students.middleName,
         lastName: students.lastName,
         dateOfBirth: students.dateOfBirth,
         gender: students.gender,
@@ -282,13 +285,16 @@ export async function assembleTranscript(
     id: s.id,
     indexNumber: s.indexNumber,
     firstName: s.firstName,
+    middleName: s.middleName ?? null,
     lastName: s.lastName,
-    fullName: `${s.firstName} ${s.lastName}`,
-    dateOfBirth: (s as any).dateOfBirth ?? null,
-    gender: (s as any).gender ?? null,
+    fullName: [s.firstName, s.middleName, s.lastName]
+      .filter(Boolean)
+      .join(" "),
+    dateOfBirth: s.dateOfBirth ?? null,
+    gender: s.gender ?? null,
     level: s.level,
     entryYear: s.entryYear,
-    graduationYear: s.graduationYear ?? null,
+    graduationYear: s.graduationYear,
     status: s.status,
     programme: {
       id: s.programmeId,

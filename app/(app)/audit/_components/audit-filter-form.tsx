@@ -8,7 +8,7 @@
  * Active filters shown as dismissible pills below the form.
  */
 
-import { AUDIT_ENTITIES, AUDIT_ACTIONS } from "@/lib/audit-log";
+import { AUDIT_ENTITIES, AUDIT_ACTIONS } from "@/lib/audit/queries";
 
 type Props = {
   action?:  string;
