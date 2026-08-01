@@ -15,7 +15,6 @@ package = "@netlify/plugin-nextjs"
 publish = "/opt/build/repo/.next"
 publishOrigin = "config"
 commandOrigin = "config"
-base = "/opt/build/repo"
 command = "pnpm run build"
 
   [build.environment]

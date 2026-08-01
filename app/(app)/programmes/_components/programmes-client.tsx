@@ -17,7 +17,7 @@ import {
 
 type Props = { initial: Programme[] };
 
-const IDLE: import("@/types/auth").ActionState<{ id: string }> = { status: "idle" };
+const IDLE = { status: "idle" } as const;
 
 export function ProgrammesClient({ initial }: Props) {
   const toast = useToast();
@@ -84,7 +84,7 @@ export function ProgrammesClient({ initial }: Props) {
     setDelLoading(false);
     setDeleting(null);
     if (result.status === "success") toast.success("Programme deleted");
-    else if (result.status === "error") toast.error(result.error);
+    else toast.error(result.error);
   }
 
   return (
@@ -122,6 +122,7 @@ export function ProgrammesClient({ initial }: Props) {
             <tr>
               <Th>Name</Th>
               <Th>Code</Th>
+              <Th>Type</Th>
               <Th>Status</Th>
               <Th>Created</Th>
               <Th className="text-right">Actions</Th>
@@ -132,6 +133,14 @@ export function ProgrammesClient({ initial }: Props) {
               <Tr key={p.id}>
                 <Td className="font-medium text-gray-900 dark:text-gray-100">{p.name}</Td>
                 <Td><code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs dark:bg-gray-800">{p.code}</code></Td>
+                <Td>
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${p.programmeType === "DIPLOMA"
+                    ? "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
+                    : "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300"
+                    }`}>
+                    {p.programmeType === "DIPLOMA" ? "Diploma" : "Degree"}
+                  </span>
+                </Td>
                 <Td>
                   <Badge variant={p.isActive ? "green" : "gray"}>
                     {p.isActive ? "Active" : "Inactive"}
@@ -180,6 +189,13 @@ export function ProgrammesClient({ initial }: Props) {
             hint="Uppercase. Must be unique, e.g. BSC-CS">
             <Input name="code" placeholder="BSC-CS" required />
           </Field>
+          <Field label="Programme type" required hint="Determines which grading scale is used on transcripts">
+            <select name="programmeType" defaultValue="DEGREE"
+              className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100">
+              <option value="DEGREE">Degree — First Class / Second Class / Third Class</option>
+              <option value="DIPLOMA">Diploma — Distinction / Credit / Pass</option>
+            </select>
+          </Field>
         </form>
       </Modal>
 
@@ -205,6 +221,13 @@ export function ProgrammesClient({ initial }: Props) {
             <Field label="Programme code" required
               error={editState.status === "error" ? editState.fieldErrors?.code?.[0] : undefined}>
               <Input name="code" defaultValue={editing.code} required />
+            </Field>
+            <Field label="Programme type" required hint="Changing this will affect how future transcripts are classified">
+              <select name="programmeType" defaultValue={editing.programmeType ?? "DEGREE"}
+                className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100">
+                <option value="DEGREE">Degree — First Class / Second Class / Third Class</option>
+                <option value="DIPLOMA">Diploma — Distinction / Credit / Pass</option>
+              </select>
             </Field>
           </form>
         )}

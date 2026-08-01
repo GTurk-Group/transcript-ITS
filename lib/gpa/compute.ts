@@ -102,15 +102,34 @@ export function sumSemesters(semesters: SemesterGPAResult[]): {
 /**
  * Classify a CGPA into a degree class.
  *
- * Thresholds follow the UEW Bachelor of Education grading scheme
- * (see transcript grading-scheme appendix).
+ * Thresholds follow the standard 4.0-scale convention used by most West
+ * African universities. Adjust per institution policy if needed.
+ *
+ * cgpa >= 3.60  → First Class
+ * cgpa >= 3.00  → Second Class Upper
+ * cgpa >= 2.50  → Second Class Lower
+ * cgpa >= 2.00  → Third Class
+ * cgpa >= 1.00  → Pass
+ * cgpa  < 1.00  → Fail
+ * no results    → "No Results"
  */
 export function classifyGPA(
   cgpa: number,
   hasResults: boolean,
+  programmeType: import("./types").ProgrammeType = "DEGREE",
 ): GradeClassification {
   if (!hasResults) return "No Results";
-  if (cgpa >= 3.5) return "First Class";
+
+  if (programmeType === "DIPLOMA") {
+    // Diploma classification scale
+    if (cgpa >= 3.5) return "Distinction";
+    if (cgpa >= 2.5) return "Credit";
+    if (cgpa >= 1.0) return "Pass";
+    return "Fail";
+  }
+
+  // Degree classification scale (default)
+  if (cgpa >= 3.6) return "First Class";
   if (cgpa >= 3.0) return "Second Class Upper";
   if (cgpa >= 2.5) return "Second Class Lower";
   if (cgpa >= 2.0) return "Third Class";
@@ -127,14 +146,14 @@ export function formatGPA(gpa: number): string {
 
 /**
  * Human-readable semester label.
- * (2013, "FIRST") → "2013/2014 Academic Year First Semester"
+ * (2022, "FIRST") → "2022/2023 – First Semester"
  */
 export function formatSemesterLabel(
   year: number,
   term: "FIRST" | "SECOND",
 ): string {
   const termLabel = term === "FIRST" ? "First Semester" : "Second Semester";
-  return `${year}/${year + 1} Academic Year ${termLabel}`;
+  return `${year}/${year + 1} – ${termLabel}`;
 }
 
 // ─── Internal ─────────────────────────────────────────────────────────────────

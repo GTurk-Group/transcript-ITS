@@ -61,12 +61,26 @@ export type CGPAResult = {
   semesters: SemesterGPAResult[];
 };
 
-/** CGPA band classification. Thresholds follow the standard 4.0 scale. */
+/**
+ * CGPA band classification.
+ *
+ * Degree scale (standard 4.0):
+ *   First Class (≥3.60) · Second Class Upper (≥3.00) ·
+ *   Second Class Lower (≥2.50) · Third Class (≥2.00) · Pass (≥1.00) · Fail
+ *
+ * Diploma scale:
+ *   Distinction (≥3.50) · Credit (≥2.50) · Pass (≥1.00) · Fail
+ */
 export type GradeClassification =
   | "First Class"
   | "Second Class Upper"
   | "Second Class Lower"
   | "Third Class"
+  | "Distinction"
+  | "Credit"
   | "Pass"
   | "Fail"
   | "No Results";
+
+/** Programme type determines which classification scale is used. */
+export type ProgrammeType = "DEGREE" | "DIPLOMA";

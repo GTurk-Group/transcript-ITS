@@ -89,9 +89,7 @@ export const admins = pgTable(
     isActive: boolean("is_active").default(true).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => ({
-    emailUnique: uniqueIndex("admins_email_unique").on(table.email),
-  }),
+  (table) => [uniqueIndex("admins_email_unique").on(table.email)],
 );
 
 // ─── Programmes ───────────────────────────────────────────────────────────────
@@ -103,6 +101,7 @@ export const programmes = pgTable(
     name: varchar("name", { length: 255 }).notNull(),
     code: varchar("code", { length: 50 }).notNull(),
     isActive: boolean("is_active").default(true),
+    programmeType: varchar("programme_type").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
@@ -122,7 +121,7 @@ export const students = pgTable(
     middleName: varchar("middle_name", { length: 100 }),
     lastName: varchar("last_name", { length: 100 }).notNull(),
     dateOfBirth: date("date_of_birth"),
-    gender: varchar("gender", { length: 10 }),
+    gender: varchar("gender"),
     programmeId: uuid("programme_id")
       .references(() => programmes.id)
       .notNull(),
@@ -322,19 +321,5 @@ export const uploadJobRows = pgTable(
   },
   (table) => ({
     jobIdx: index("upload_job_rows_job_idx").on(table.jobId),
-  }),
-);
-
-// ─── Rate limiting ────────────────────────────────────────────────────────────
-
-export const rateLimitAttempts = pgTable(
-  "rate_limit_attempts",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    key: varchar("key", { length: 255 }).notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-  },
-  (table) => ({
-    keyIdx: index("rate_limit_key_idx").on(table.key, table.createdAt),
   }),
 );

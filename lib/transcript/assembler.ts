@@ -46,10 +46,8 @@ import {
   formatGPA,
   formatSemesterLabel,
 } from "@/lib/gpa/compute";
-import {
-  fetchStudentGradeRows,
-  type GradeDisplayRow,
-} from "@/lib/grades/queries";
+import { fetchStudentGradeRows } from "@/lib/grades/queries";
+import type { GradeDisplayRow } from "@/lib/grades/queries";
 import type { SemesterAggregateRow } from "@/lib/gpa/types";
 import type {
   TranscriptObject,
@@ -114,6 +112,7 @@ export async function assembleTranscript(
         programmeId: programmes.id,
         programmeName: programmes.name,
         programmeCode: programmes.code,
+        programmeType: programmes.programmeType,
       })
       .from(students)
       .innerJoin(programmes, eq(students.programmeId, programmes.id))
@@ -276,7 +275,11 @@ export async function assembleTranscript(
     totalQualityPoints,
     cgpa,
     cgpaFormatted: formatGPA(cgpa),
-    classification: classifyGPA(cgpa, hasResults),
+    classification: classifyGPA(
+      cgpa,
+      hasResults,
+      ((s as any).programmeType ?? "DEGREE") as "DEGREE" | "DIPLOMA",
+    ),
   };
 
   // ── Shape the entity types ─────────────────────────────────────────────────
@@ -285,13 +288,11 @@ export async function assembleTranscript(
     id: s.id,
     indexNumber: s.indexNumber,
     firstName: s.firstName,
-    middleName: s.middleName ?? null,
     lastName: s.lastName,
-    fullName: [s.firstName, s.middleName, s.lastName]
-      .filter(Boolean)
-      .join(" "),
-    dateOfBirth: s.dateOfBirth ?? null,
-    gender: s.gender ?? null,
+    middleName: s.middleName,
+    fullName: `${s.firstName} ${s.middleName} ${s.lastName}`,
+    gender: s.gender,
+    dateOfBirth: s.dateOfBirth,
     level: s.level,
     entryYear: s.entryYear,
     graduationYear: s.graduationYear,
@@ -300,6 +301,7 @@ export async function assembleTranscript(
       id: s.programmeId,
       name: s.programmeName,
       code: s.programmeCode,
+      type: ((s as any).programmeType ?? "DEGREE") as "DEGREE" | "DIPLOMA",
     },
   };
 

@@ -1,10 +1,13 @@
 /**
  * GET /api/templates/courses
- * Returns a CSV template for bulk course import.
+ * Serves the pre-built courses bulk upload Excel template.
+ * Place courses-template.xlsx in public/templates/ before deploying.
  */
 import { type NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth/jwt";
 import { COOKIE_NAME } from "@/lib/auth/config";
+import { readFile } from "fs/promises";
+import { join } from "path";
 
 export async function GET(req: NextRequest) {
   const token = req.cookies.get(COOKIE_NAME)?.value;
@@ -12,21 +15,31 @@ export async function GET(req: NextRequest) {
   if (!session)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const csv = [
-    "code,title,credit_hours,is_scoring",
-    "MATH101,Introduction to Mathematics,3,true",
-    "ENG101,English Language and Communication,3,true",
-    "SCI201,Introduction to Science,3,true",
-    "PE101,Physical Education,2,false",
-    "ICT301,Information and Communication Technology,3,true",
-    "PROJ600,Final Year Project,24,true",
-  ].join("\r\n");
+  try {
+    const filePath = join(
+      process.cwd(),
+      "public",
+      "templates",
+      "courses-template.xlsx",
+    );
+    const bytes = await readFile(filePath);
 
-  return new NextResponse("\uFEFF" + csv, {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="courses-template.csv"',
-      "Cache-Control": "private, max-age=3600",
-    },
-  });
+    return new NextResponse(new Uint8Array(bytes), {
+      headers: {
+        "Content-Type":
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": 'attachment; filename="courses-template.xlsx"',
+        "Content-Length": String(bytes.length),
+        "Cache-Control": "private, max-age=3600",
+      },
+    });
+  } catch {
+    return NextResponse.json(
+      {
+        error:
+          "Template file not found. Make sure courses-template.xlsx is in public/templates/.",
+      },
+      { status: 404 },
+    );
+  }
 }

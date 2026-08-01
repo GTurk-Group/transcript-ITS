@@ -15,7 +15,7 @@ import { db } from "@/db";
 import { programmes } from "@/db/schema";
 import { assertPermission } from "@/lib/auth/rbac";
 import { logAuditEvent, extractRequestMeta } from "@/lib/audit";
-import { parseDbError, dbErrorMessage, withAction } from "@/actions/utils";
+import { parseDbError, dbErrorMessage, withAction } from "@/lib/actions/utils";
 import type { ActionState } from "@/types/auth";
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
@@ -26,6 +26,7 @@ const programmeSchema = z.object({
     .trim()
     .min(2, "Name must be at least 2 characters")
     .max(255, "Name must be at most 255 characters"),
+  programmeType: z.enum(["DEGREE", "DIPLOMA"]).default("DEGREE"),
   code: z
     .string({ required_error: "Code is required" })
     .trim()
@@ -52,6 +53,7 @@ export async function createProgrammeAction(
     const parsed = programmeSchema.safeParse({
       name: formData.get("name"),
       code: formData.get("code"),
+      programmeType: formData.get("programmeType") || "DEGREE",
     });
 
     if (!parsed.success) {
@@ -101,6 +103,7 @@ export async function updateProgrammeAction(
     const parsed = programmeSchema.safeParse({
       name: formData.get("name"),
       code: formData.get("code"),
+      programmeType: formData.get("programmeType") || "DEGREE",
     });
 
     if (!parsed.success) {

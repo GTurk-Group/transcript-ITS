@@ -1,258 +1,268 @@
+"use client";
 /**
- * /transcripts — Search and view transcripts inline.
+ * components/bulk/generic-form.tsx
  *
- * When a student is found by index number or name, their transcript
- * assembles and renders on THIS page — no navigation required.
+ * Reusable drag-and-drop CSV upload form.
+ * Used by /bulk/programmes and /bulk/courses pages.
  *
- * URL pattern:
- *   /transcripts          → search prompt
- *   /transcripts?q=CS001  → inline transcript for matched student
- *                           (if single match) or list (if multiple)
+ * Props:
+ *   endpoint     — API route to POST the file to
+ *   successHref  — page to link to after successful import
+ *   successLabel — button label for the success link
  */
 
-import { requireAuth, can } from "@/lib/auth/rbac";
-import { db } from "@/db";
-import { students, transcripts, programmes } from "@/db/schema";
-import { eq, ilike, or, desc } from "drizzle-orm";
-import { assembleTranscript } from "@/lib/transcript";
-import { TranscriptPreview } from "./[studentId]/_components/transcript-preview";
-import { TranscriptActionBar } from "./[studentId]/_components/transcript-action-bar";
-import type { Metadata } from "next";
+import { useState, useRef, useCallback } from "react";
 
-export const metadata: Metadata = { title: "Transcripts — TMS" };
+type Phase =
+    | { name: "idle" }
+    | { name: "selected"; file: File }
+    | { name: "uploading"; file: File; progress: number }
+    | { name: "done"; ok: number; failed: number; errors: { row: number; message: string }[] };
 
-type PageProps = { searchParams: Promise<{ q?: string }> };
+const MAX_MB = 5;
 
-export default async function TranscriptsPage({ searchParams }: PageProps) {
-    const session = await requireAuth();
-    const { q } = await searchParams;
-    const query = q?.trim() ?? "";
-    const canGen = can(session, "generate_transcripts");
+export function BulkGenericForm({
+    endpoint,
+    successHref,
+    successLabel,
+}: {
+    endpoint: string;
+    successHref: string;
+    successLabel: string;
+}) {
+    const [phase, setPhase] = useState<Phase>({ name: "idle" });
+    const [dragOver, setDragOver] = useState(false);
+    const [showAll, setShowAll] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
 
-    // ── If search query, find matching students ─────────────────────────────────
-    let matchedStudents: { id: string; indexNumber: string; firstName: string; middleName: string | null; lastName: string; programmeName: string | null }[] = [];
+    const pickFile = useCallback((file: File) => {
+        if (!file.name.toLowerCase().endsWith(".csv")) {
+            alert("Please select a CSV file. Open the xlsx template in Excel, fill in your data, then save as CSV.");
+            return;
+        }
+        if (file.size > MAX_MB * 1024 * 1024) {
+            alert(`File must be under ${MAX_MB} MB.`);
+            return;
+        }
+        setPhase({ name: "selected", file });
+    }, []);
 
-    if (query) {
-        matchedStudents = await db
-            .select({
-                id: students.id,
-                indexNumber: students.indexNumber,
-                firstName: students.firstName,
-                middleName: students.middleName,
-                lastName: students.lastName,
-                programmeName: programmes.name,
-            })
-            .from(students)
-            .leftJoin(programmes, eq(students.programmeId, programmes.id))
-            .where(
-                or(
-                    ilike(students.indexNumber, `%${query}%`),
-                    ilike(students.firstName, `%${query}%`),
-                    ilike(students.lastName, `%${query}%`),
-                )
-            )
-            .limit(10);
-    }
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setDragOver(false);
+        const f = e.dataTransfer.files[0];
+        if (f) pickFile(f);
+    };
 
-    // ── Auto-load transcript when exactly one student matches ───────────────────
-    let inlineTranscript: Awaited<ReturnType<typeof assembleTranscript>> | null = null;
-    let inlineLatestRecord: { id: string; transcriptNumber: string; createdAt: Date } | null = null;
+    const handleUpload = () => {
+        if (phase.name !== "selected") return;
+        const { file } = phase;
+        const fd = new FormData();
+        fd.append("file", file);
+        const xhr = new XMLHttpRequest();
 
-    if (matchedStudents.length === 1) {
-        const studentId = matchedStudents[0].id;
+        xhr.upload.addEventListener("progress", (e) => {
+            if (e.lengthComputable) {
+                setPhase({ name: "uploading", file, progress: Math.round((e.loaded / e.total) * 100) });
+            }
+        });
 
-        const [assembled, records] = await Promise.all([
-            assembleTranscript(studentId),
-            db.select({ id: transcripts.id, transcriptNumber: transcripts.transcriptNumber, createdAt: transcripts.createdAt })
-                .from(transcripts)
-                .where(eq(transcripts.studentId, studentId))
-                .orderBy(desc(transcripts.createdAt))
-                .limit(1),
-        ]);
+        xhr.addEventListener("load", () => {
+            try {
+                const r = JSON.parse(xhr.responseText);
+                if (xhr.status === 200) {
+                    setPhase({
+                        name: "done",
+                        ok: r.successCount ?? r.inserted ?? 0,
+                        failed: r.failureCount ?? r.failed ?? 0,
+                        errors: r.failures ?? r.errors ?? [],
+                    });
+                } else {
+                    alert(r.error ?? "Upload failed.");
+                    setPhase({ name: "selected", file });
+                }
+            } catch {
+                alert("Unreadable server response.");
+                setPhase({ name: "selected", file });
+            }
+        });
 
-        inlineTranscript = assembled;
-        inlineLatestRecord = records[0] ?? null;
-    }
+        xhr.addEventListener("error", () => {
+            alert("Network error — check your connection and try again.");
+            setPhase({ name: "selected", file });
+        });
 
-    // ── Recent transcript history ───────────────────────────────────────────────
-    const recent = await db
-        .select({
-            id: transcripts.id,
-            transcriptNumber: transcripts.transcriptNumber,
-            createdAt: transcripts.createdAt,
-            studentId: transcripts.studentId,
-            idx: students.indexNumber,
-            first: students.firstName,
-            last: students.lastName,
-            prog: programmes.name,
-        })
-        .from(transcripts)
-        .innerJoin(students, eq(transcripts.studentId, students.id))
-        .innerJoin(programmes, eq(students.programmeId, programmes.id))
-        .orderBy(desc(transcripts.createdAt))
-        .limit(20);
+        xhr.open("POST", endpoint);
+        xhr.send(fd);
+        setPhase({ name: "uploading", file, progress: 0 });
+    };
 
-    // ── When inline transcript loaded, show it full-width ──────────────────────
-    if (inlineTranscript?.ok) {
-        const { transcript } = inlineTranscript;
-        const latestRef = inlineLatestRecord;
+    const reset = () => {
+        setPhase({ name: "idle" });
+        setShowAll(false);
+        if (inputRef.current) inputRef.current.value = "";
+    };
 
-        const displayTranscript = latestRef
-            ? { ...transcript, transcriptNumber: latestRef.transcriptNumber, generatedAt: latestRef.createdAt.toISOString() }
-            : { ...transcript, transcriptNumber: "PREVIEW", generatedAt: new Date().toISOString() };
+    /* ── Done state ──────────────────────────────────────────────────────────── */
+    if (phase.name === "done") {
+        const allOk = phase.failed === 0;
+        const allFail = phase.ok === 0 && phase.failed > 0;
+        const visible = showAll ? phase.errors : phase.errors.slice(0, 5);
 
         return (
-            <div>
-                {/* Action bar with search input inline */}
-                <div className="print:hidden mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900" data-print-hide>
-                    <form method="GET" className="flex flex-1 max-w-md gap-2">
-                        <input name="q" type="search" defaultValue={query} autoFocus
-                            placeholder="Search by name or index number…"
-                            className="flex-1 rounded-xl border border-gray-300 px-4 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
-                        <button type="submit"
-                            className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
-                            Search
-                        </button>
-                    </form>
-                    <div className="flex items-center gap-2">
-                        <button type="button" onClick={() => window.print()}
-                            className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
-                            <PrintIcon />Print / Save as PDF
-                        </button>
-                    </div>
-                </div>
-
-                {/* Inline action bar for record */}
-                <TranscriptActionBar
-                    studentId={matchedStudents[0].id}
-                    studentName={transcript.student.fullName}
-                    canGenerate={canGen}
-                    latestRecordId={latestRef?.id ?? null}
-                />
-
-                {/* Inline transcript preview */}
-                <TranscriptPreview
-                    transcript={displayTranscript}
-                    latestRecordId={latestRef?.id ?? null}
-                />
-            </div>
-        );
-    }
-
-    // ── Error assembling transcript ─────────────────────────────────────────────
-    if (inlineTranscript && !inlineTranscript.ok) {
-        return (
-            <div className="space-y-6">
-                <SearchBar query={query} />
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
-                    {inlineTranscript.error.message}
-                </div>
-            </div>
-        );
-    }
-
-    // ── Default view: search + results list + recent history ───────────────────
-    return (
-        <div className="space-y-8">
-
-            <div>
-                <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Transcripts</h1>
-                <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-                    Search by student name or index number — the transcript loads instantly.
-                </p>
-            </div>
-
-            {/* Search */}
-            <SearchBar query={query} autoFocus />
-
-            {/* Multiple results list */}
-            {query && matchedStudents.length > 1 && (
-                <section>
-                    <p className="mb-3 text-sm text-gray-500 dark:text-gray-400">
-                        {matchedStudents.length} students matched &ldquo;{query}&rdquo; — select one:
+            <div className="space-y-5">
+                <div className={[
+                    "flex items-start gap-3 rounded-2xl border px-5 py-4",
+                    allOk ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/20"
+                        : allFail ? "border-red-200    bg-red-50    dark:border-red-900    dark:bg-red-950/20"
+                            : "border-amber-200  bg-amber-50  dark:border-amber-900  dark:bg-amber-950/20",
+                ].join(" ")}>
+                    <span className="mt-0.5 text-lg">{allOk ? "✓" : allFail ? "✗" : "⚠"}</span>
+                    <p className={[
+                        "text-sm font-semibold",
+                        allOk ? "text-emerald-800 dark:text-emerald-300"
+                            : allFail ? "text-red-800    dark:text-red-300"
+                                : "text-amber-800  dark:text-amber-300",
+                    ].join(" ")}>
+                        {allOk && `All ${phase.ok} records imported successfully.`}
+                        {allFail && `All ${phase.failed} rows failed — nothing was imported.`}
+                        {!allOk && !allFail && `${phase.ok} imported, ${phase.failed} failed.`}
                     </p>
-                    <div className="space-y-2">
-                        {matchedStudents.map((s) => (
-                            <a key={s.id}
-                                href={`/transcripts?q=${encodeURIComponent(s.indexNumber)}`}
-                                className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-5 py-4 hover:border-indigo-300 hover:shadow-sm transition-all dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-700">
-                                <div>
-                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                        {[s.firstName, s.middleName, s.lastName].filter(Boolean).join(" ")}
-                                    </p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{s.indexNumber}</p>
-                                    <p className="text-xs text-gray-400 dark:text-gray-600">{s.programmeName}</p>
-                                </div>
-                                <svg className="h-4 w-4 text-gray-400 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                                </svg>
-                            </a>
-                        ))}
-                    </div>
-                </section>
-            )}
-
-            {/* No results */}
-            {query && matchedStudents.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 py-12 text-center dark:border-gray-700 dark:bg-gray-900/30">
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">No students found</p>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-500">No results for &ldquo;{query}&rdquo;</p>
                 </div>
-            )}
 
-            {/* Recent transcripts */}
-            {recent.length > 0 && !query && (
-                <section>
-                    <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-600">Recent transcripts</h2>
-                    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                        <table className="min-w-full divide-y divide-gray-100 text-sm dark:divide-gray-800">
-                            <thead className="bg-gray-50 dark:bg-gray-800/50">
-                                <tr>
-                                    {["Reference", "Student", "Programme", "Date"].map((h) => (
-                                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{h}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                                {recent.map((t) => (
-                                    <tr key={t.id}
-                                        className="cursor-pointer hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 transition-colors"
-                                        onClick={() => { window.location.href = `/transcripts?q=${encodeURIComponent(t.idx)}`; }}>
-                                        <td className="px-4 py-3 font-mono text-xs text-gray-500 dark:text-gray-400">{t.transcriptNumber}</td>
-                                        <td className="px-4 py-3">
-                                            <p className="font-medium text-gray-900 dark:text-gray-100">{t.first} {t.last}</p>
-                                            <p className="text-xs text-gray-400 font-mono">{t.idx}</p>
-                                        </td>
-                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{t.prog}</td>
-                                        <td className="whitespace-nowrap px-4 py-3 text-gray-500 dark:text-gray-400">
-                                            {new Date(t.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                                        </td>
+                <div className="grid grid-cols-2 gap-3">
+                    {([["Imported", phase.ok, "emerald"], ["Failed", phase.failed, phase.failed > 0 ? "red" : "gray"]] as const).map(([label, val, color]) => (
+                        <div key={label} className={[
+                            "rounded-xl border p-4 text-center",
+                            color === "emerald" ? "border-emerald-200 bg-emerald-50  dark:border-emerald-900 dark:bg-emerald-950/20"
+                                : color === "red" ? "border-red-200    bg-red-50      dark:border-red-900    dark:bg-red-950/20"
+                                    : "border-gray-200   bg-gray-50     dark:border-gray-800   dark:bg-gray-900",
+                        ].join(" ")}>
+                            <p className={[
+                                "text-2xl font-bold tabular-nums",
+                                color === "emerald" ? "text-emerald-700 dark:text-emerald-300"
+                                    : color === "red" ? "text-red-700    dark:text-red-300"
+                                        : "text-gray-700   dark:text-gray-300",
+                            ].join(" ")}>{val}</p>
+                            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{label}</p>
+                        </div>
+                    ))}
+                </div>
+
+                {phase.errors.length > 0 && (
+                    <div className="space-y-2">
+                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Failed rows</p>
+                        <div className="overflow-hidden rounded-xl border border-red-200 dark:border-red-900">
+                            <table className="min-w-full text-xs divide-y divide-red-100 dark:divide-red-900">
+                                <thead className="bg-red-50 dark:bg-red-950/30">
+                                    <tr>
+                                        <th className="px-3 py-2 text-left font-semibold text-red-700 dark:text-red-400 w-16">Row</th>
+                                        <th className="px-3 py-2 text-left font-semibold text-red-700 dark:text-red-400">Error</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="bg-white dark:bg-gray-900 divide-y divide-red-50 dark:divide-red-950">
+                                    {visible.map((e, i) => (
+                                        <tr key={i}>
+                                            <td className="px-3 py-2 font-mono text-gray-500 dark:text-gray-400">{e.row || "—"}</td>
+                                            <td className="px-3 py-2 text-red-700 dark:text-red-400">{e.message}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            {phase.errors.length > 5 && (
+                                <button type="button" onClick={() => setShowAll(v => !v)}
+                                    className="w-full border-t border-red-100 dark:border-red-900 bg-red-50 dark:bg-red-950/20 px-4 py-2 text-xs font-medium text-red-700 dark:text-red-400 hover:bg-red-100">
+                                    {showAll ? "Show fewer" : `Show all ${phase.errors.length} errors`}
+                                </button>
+                            )}
+                        </div>
                     </div>
-                </section>
+                )}
+
+                <div className="flex gap-3">
+                    <button type="button" onClick={reset}
+                        className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                        Upload another file
+                    </button>
+                    {phase.ok > 0 && (
+                        <a href={successHref}
+                            className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+                            {successLabel}
+                        </a>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    /* ── Upload / idle / selected state ─────────────────────────────────────── */
+    return (
+        <div className="space-y-4">
+            <div
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                onClick={() => phase.name === "idle" && inputRef.current?.click()}
+                className={[
+                    "flex flex-col items-center justify-center rounded-2xl border-2 border-dashed px-8 py-12 text-center transition-all",
+                    phase.name === "idle"
+                        ? dragOver
+                            ? "cursor-copy border-indigo-400 bg-indigo-50 dark:bg-indigo-950/20"
+                            : "cursor-pointer border-gray-300 hover:border-indigo-400 hover:bg-indigo-50/40 dark:border-gray-700 dark:hover:border-indigo-700"
+                        : "border-gray-200 dark:border-gray-800",
+                ].join(" ")}
+            >
+                <input
+                    ref={inputRef} type="file" accept=".csv,text/csv" className="sr-only"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) pickFile(f); }}
+                    disabled={phase.name === "uploading"}
+                />
+
+                {phase.name === "idle" && (
+                    <>
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-100 dark:bg-indigo-950">
+                            <svg className="h-6 w-6 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                            </svg>
+                        </div>
+                        <p className="mt-3 text-sm font-medium text-gray-700 dark:text-gray-300">Drop CSV here, or click to browse</p>
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-500">Max {MAX_MB} MB · CSV files only</p>
+                    </>
+                )}
+
+                {phase.name === "selected" && (
+                    <>
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 dark:bg-emerald-950">
+                            <svg className="h-6 w-6 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                            </svg>
+                        </div>
+                        <p className="mt-3 text-sm font-semibold text-gray-800 dark:text-gray-200">{phase.file.name}</p>
+                        <p className="mt-0.5 text-xs text-gray-500">{(phase.file.size / 1024).toFixed(1)} KB</p>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); reset(); }}
+                            className="mt-2 text-xs text-gray-400 underline hover:text-gray-600">
+                            Remove
+                        </button>
+                    </>
+                )}
+
+                {phase.name === "uploading" && (
+                    <>
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Uploading…</p>
+                        <div className="mt-4 h-2 w-48 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                            <div className="h-full rounded-full bg-indigo-600 transition-all duration-300" style={{ width: `${phase.progress}%` }} />
+                        </div>
+                        <p className="mt-2 text-xs text-gray-500">{phase.progress}%</p>
+                    </>
+                )}
+            </div>
+
+            {(phase.name === "selected" || phase.name === "uploading") && (
+                <button type="button" onClick={handleUpload} disabled={phase.name === "uploading"}
+                    className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 shadow-sm shadow-indigo-100 dark:shadow-none transition-colors">
+                    {phase.name === "uploading" ? "Processing…" : "Upload and import"}
+                </button>
             )}
         </div>
     );
-}
-
-function SearchBar({ query, autoFocus }: { query: string; autoFocus?: boolean }) {
-    return (
-        <form method="GET" className="flex gap-3 max-w-lg">
-            <input name="q" type="search" defaultValue={query}
-                autoFocus={autoFocus}
-                placeholder="Index number or student name…"
-                className="flex-1 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
-            <button type="submit"
-                className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700 shadow-sm shadow-indigo-100 dark:shadow-none">
-                Search
-            </button>
-        </form>
-    );
-}
-
-function PrintIcon() {
-    return <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z" /></svg>;
 }
