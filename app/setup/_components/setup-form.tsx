@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { setupAdminAction } from "@/actions/setup";
 import type { ActionState } from "@/types/auth";
 
-const initialState: ActionState<{ name: string; email: string; password: string; confirmPassword: string } | undefined> = { status: "idle" };
+const initialState: ActionState = { status: "idle" };
 
 export function SetupForm() {
     const [state, formAction, isPending] = useActionState(setupAdminAction, initialState);

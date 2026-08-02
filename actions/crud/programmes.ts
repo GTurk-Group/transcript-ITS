@@ -46,7 +46,7 @@ export type Programme = typeof programmes.$inferSelect;
 export async function createProgrammeAction(
   _prev: ActionState,
   formData: FormData,
-): Promise<ActionState<{ id: string }>> {
+): Promise<ActionState> {
   return withAction(async () => {
     const session = await assertPermission("manage_programmes");
 
