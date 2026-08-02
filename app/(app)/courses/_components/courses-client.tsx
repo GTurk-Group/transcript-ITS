@@ -12,6 +12,7 @@ import {
   Modal, ConfirmDialog, Field, Input, Select,
   useToast,
 } from "@/components/ui";
+import { Pagination, usePagination } from "@/components/ui/pagination";
 
 const IDLE = { status: "idle" } as const;
 
@@ -26,12 +27,16 @@ export function CoursesClient({ initial }: { initial: Course[] }) {
   const [delLoading, setDelLoading] = useState(false);
   const [, startTransition] = useTransition();
 
+  // Reset page when search/filter changes handled in onPage/onPerPage
   const filtered = courses.filter((c) => {
     const q = search.toLowerCase();
     const matchSearch = c.code.toLowerCase().includes(q) || c.title.toLowerCase().includes(q);
     const matchFilter = filter === "all" || (filter === "active" ? c.isActive : !c.isActive);
     return matchSearch && matchFilter;
   });
+
+  const { page, perPage, total, totalPages, paginated, setPage, setPerPage } =
+    usePagination(filtered);
 
   async function handleCreate(formData: FormData) {
     const r = await createCourseAction(IDLE, formData);
@@ -88,13 +93,13 @@ export function CoursesClient({ initial }: { initial: Course[] }) {
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex-1 max-w-xs">
-          <SearchBar value={search} onChange={setSearch} placeholder="Search code or title…" />
+          <SearchBar value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search code or title…" />
         </div>
         <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
           {(["all", "active", "inactive"] as const).map((f) => (
             <button
               key={f}
-              onClick={() => setFilter(f)}
+              onClick={() => { setFilter(f); setPage(1); }}
               className={[
                 "px-3 py-1.5 text-xs font-medium capitalize transition-colors",
                 filter === f
@@ -116,51 +121,58 @@ export function CoursesClient({ initial }: { initial: Course[] }) {
           )}
         />
       ) : (
-        <Table>
-          <Thead>
-            <tr>
-              <Th>Code</Th>
-              <Th>Title</Th>
-              <Th>Cr. hrs</Th>
-              <Th>Scoring</Th>
-              <Th>Status</Th>
-              <Th className="text-right">Actions</Th>
-            </tr>
-          </Thead>
-          <Tbody>
-            {filtered.map((c) => (
-              <Tr key={c.id}>
-                <Td><code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs dark:bg-gray-800">{c.code}</code></Td>
-                <Td className="font-medium text-gray-900 dark:text-gray-100 max-w-xs truncate">{c.title}</Td>
-                <Td className="tabular-nums font-medium">{c.creditHours}</Td>
-                <Td>
-                  <button onClick={() => handleToggle(c, "scoring")}>
-                    <Badge variant={c.isScoring ? "blue" : "gray"}>
-                      {c.isScoring ? "Scoring" : "Non-scoring"}
+        <div className="space-y-3">
+          <Table>
+            <Thead>
+              <tr>
+                <Th>Code</Th>
+                <Th>Title</Th>
+                <Th>Cr. hrs</Th>
+                <Th>Scoring</Th>
+                <Th>Status</Th>
+                <Th className="text-right">Actions</Th>
+              </tr>
+            </Thead>
+            <Tbody>
+              {paginated.map((c) => (
+                <Tr key={c.id}>
+                  <Td><code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs dark:bg-gray-800">{c.code}</code></Td>
+                  <Td className="font-medium text-gray-900 dark:text-gray-100 max-w-xs truncate">{c.title}</Td>
+                  <Td className="tabular-nums font-medium">{c.creditHours}</Td>
+                  <Td>
+                    <button onClick={() => handleToggle(c, "scoring")}>
+                      <Badge variant={c.isScoring ? "blue" : "gray"}>
+                        {c.isScoring ? "Scoring" : "Non-scoring"}
+                      </Badge>
+                    </button>
+                  </Td>
+                  <Td>
+                    <Badge variant={c.isActive ? "green" : "gray"}>
+                      {c.isActive ? "Active" : "Inactive"}
                     </Badge>
-                  </button>
-                </Td>
-                <Td>
-                  <Badge variant={c.isActive ? "green" : "gray"}>
-                    {c.isActive ? "Active" : "Inactive"}
-                  </Badge>
-                </Td>
-                <Td className="text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button size="sm" variant="ghost" onClick={() => setEditing(c)}>Edit</Button>
-                    <Button size="sm" variant="ghost" onClick={() => handleToggle(c, "active")}>
-                      {c.isActive ? "Deactivate" : "Activate"}
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setDeleting(c)}
-                      className="text-red-600 hover:bg-red-50 dark:text-red-400">
-                      Delete
-                    </Button>
-                  </div>
-                </Td>
-              </Tr>
-            ))}
-          </Tbody>
-        </Table>
+                  </Td>
+                  <Td className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => setEditing(c)}>Edit</Button>
+                      <Button size="sm" variant="ghost" onClick={() => handleToggle(c, "active")}>
+                        {c.isActive ? "Deactivate" : "Activate"}
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setDeleting(c)}
+                        className="text-red-600 hover:bg-red-50 dark:text-red-400">
+                        Delete
+                      </Button>
+                    </div>
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+
+          <Pagination
+            page={page} perPage={perPage} total={total} totalPages={totalPages}
+            onPage={setPage} onPerPage={setPerPage}
+          />
+        </div>
       )}
 
       {/* Create modal */}

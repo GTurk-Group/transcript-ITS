@@ -10,6 +10,7 @@ import {
   Modal, ConfirmDialog, Field, Input, Select,
   useToast,
 } from "@/components/ui";
+import { Pagination, usePagination } from "@/components/ui/pagination";
 
 const IDLE = { status: "idle" } as const;
 
@@ -19,16 +20,21 @@ export function SemestersClient({ initial }: { initial: Semester[] }) {
   const [showCreate, setShowCreate] = useState(false);
   const [deleting, setDeleting] = useState<Semester | null>(null);
   const [delLoading, setDelLoading] = useState(false);
-
-  // Derive current year for the default value
   const currentYear = new Date().getFullYear();
+
+  // Sort all semesters newest-first for pagination
+  const sorted = [...semesters].sort((a, b) =>
+    b.year !== a.year ? b.year - a.year : a.semester.localeCompare(b.semester)
+  );
+
+  const { page, perPage, total, totalPages, paginated, setPage, setPerPage } =
+    usePagination(sorted);
 
   async function handleCreate(formData: FormData) {
     const r = await createSemesterAction(IDLE, formData);
     if (r.status === "success") {
       toast.success("Semester created");
       setShowCreate(false);
-      // Reload data - in production use revalidatePath or router.refresh()
       window.location.reload();
     } else if (r.status === "error") {
       toast.error(r.error);
@@ -45,21 +51,15 @@ export function SemestersClient({ initial }: { initial: Semester[] }) {
       toast.success("Semester deleted");
       setSemesters((prev) => prev.filter((s) => s.id !== deleting.id));
     } else if (r.status === "error") {
-      toast.error(r.error);
+      toast.error(r.error || "Failed to delete semester");
     }
   }
-
-  // Group by year for display
-  const byYear = semesters.reduce<Record<number, Semester[]>>((acc, s) => {
-    (acc[s.year] ??= []).push(s);
-    return acc;
-  }, {});
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Semesters"
-        description="Academic periods — each grade entry references a semester"
+        description={`${semesters.length} semester${semesters.length !== 1 ? "s" : ""} — each grade entry references a semester`}
         action={
           <Button variant="primary" onClick={() => setShowCreate(true)} icon={<PlusIcon />}>
             New semester
@@ -74,53 +74,54 @@ export function SemestersClient({ initial }: { initial: Semester[] }) {
           action={<Button variant="primary" onClick={() => setShowCreate(true)}>Create semester</Button>}
         />
       ) : (
-        <div className="space-y-4">
-          {Object.entries(byYear)
-            .sort(([a], [b]) => Number(b) - Number(a))
-            .map(([year, sems]) => (
-              <div key={year} className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
-                <div className="border-b border-gray-100 bg-gray-50 px-5 py-3 dark:border-gray-800 dark:bg-gray-800/50">
-                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                    Academic year {year}/{Number(year) + 1}
-                  </span>
-                </div>
-                <table className="min-w-full divide-y divide-gray-100 text-sm dark:divide-gray-800">
-                  <thead className="bg-gray-50 dark:bg-gray-800/30">
-                    <tr>
-                      <Th>Semester</Th>
-                      <Th>Year</Th>
-                      <Th>Label</Th>
-                      <Th>Created</Th>
-                      <Th className="text-right">Actions</Th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
-                    {sems.map((s) => (
-                      <Tr key={s.id}>
-                        <Td>
-                          <Badge variant={s.semester === "FIRST" ? "blue" : "purple"}>
-                            {s.semester === "FIRST" ? "First" : "Second"}
-                          </Badge>
-                        </Td>
-                        <Td className="font-mono tabular-nums">{s.year}</Td>
-                        <Td className="text-gray-600 dark:text-gray-400">
-                          {s.year}/{s.year + 1} — {s.semester === "FIRST" ? "First" : "Second"} Semester
-                        </Td>
-                        <Td className="text-gray-500">
-                          {new Date(s.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                        </Td>
-                        <Td className="text-right">
-                          <Button size="sm" variant="ghost" onClick={() => setDeleting(s)}
-                            className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950">
-                            Delete
-                          </Button>
-                        </Td>
-                      </Tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ))}
+        <div className="space-y-3">
+          <Table>
+            <Thead>
+              <tr>
+                <Th>Academic year</Th>
+                <Th>Semester</Th>
+                <Th>Label</Th>
+                <Th>Created</Th>
+                <Th className="text-right">Actions</Th>
+              </tr>
+            </Thead>
+            <Tbody>
+              {paginated.map((s) => (
+                <Tr key={s.id}>
+                  <Td className="font-mono tabular-nums font-medium text-gray-900 dark:text-gray-100">
+                    {s.year}/{s.year + 1}
+                  </Td>
+                  <Td>
+                    <Badge variant={s.semester === "FIRST" ? "blue" : "purple"}>
+                      {s.semester === "FIRST" ? "First" : "Second"}
+                    </Badge>
+                  </Td>
+                  <Td className="text-gray-600 dark:text-gray-400">
+                    {s.year}/{s.year + 1} — {s.semester === "FIRST" ? "First" : "Second"} Semester
+                  </Td>
+                  <Td className="text-gray-500 dark:text-gray-400">
+                    {new Date(s.createdAt).toLocaleDateString("en-GB", {
+                      day: "numeric", month: "short", year: "numeric",
+                    })}
+                  </Td>
+                  <Td className="text-right">
+                    <Button
+                      size="sm" variant="ghost"
+                      onClick={() => setDeleting(s)}
+                      className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
+                    >
+                      Delete
+                    </Button>
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+
+          <Pagination
+            page={page} perPage={perPage} total={total} totalPages={totalPages}
+            onPage={setPage} onPerPage={setPerPage}
+          />
         </div>
       )}
 
@@ -132,7 +133,8 @@ export function SemestersClient({ initial }: { initial: Semester[] }) {
         </>}
       >
         <form id="create-sem-form" action={handleCreate} className="space-y-4">
-          <Field label="Academic year" required hint={`e.g. ${currentYear} for the ${currentYear}/${currentYear + 1} session`}>
+          <Field label="Academic year" required
+            hint={`e.g. ${currentYear} for the ${currentYear}/${currentYear + 1} session`}>
             <Input name="year" type="number" min={1990} max={2100} defaultValue={currentYear} required />
           </Field>
           <Field label="Semester" required>
@@ -147,7 +149,7 @@ export function SemestersClient({ initial }: { initial: Semester[] }) {
       <ConfirmDialog
         open={!!deleting} onClose={() => setDeleting(null)} onConfirm={handleDelete}
         title="Delete semester"
-        message={`Delete the ${deleting?.semester === "FIRST" ? "First" : "Second"} Semester of ${deleting?.year}? This is blocked if grades exist for this semester.`}
+        message={`Delete the ${deleting?.semester === "FIRST" ? "First" : "Second"} Semester of ${deleting?.year}? Blocked if grades exist for this period.`}
         confirmLabel="Delete" danger loading={delLoading}
       />
     </div>
