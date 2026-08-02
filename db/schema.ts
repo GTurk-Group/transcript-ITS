@@ -323,3 +323,18 @@ export const uploadJobRows = pgTable(
     jobIdx: index("upload_job_rows_job_idx").on(table.jobId),
   }),
 );
+
+export const rateLimitAttempts = pgTable(
+  "rate_limit_attempts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ipAddress: varchar("ip_address", { length: 100 }).notNull(),
+    endpoint: varchar("endpoint", { length: 255 }).notNull(),
+    method: varchar("method", { length: 10 }).notNull(),
+    key: varchar("key", { length: 255 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    keyIdx: index("rate_limit_attempts_key_idx").on(table.key),
+  }),
+);

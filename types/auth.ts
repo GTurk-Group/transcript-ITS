@@ -32,8 +32,13 @@ export type AuthenticatedAdmin = SessionPayload & {
 export type ActionState<T = unknown> =
   | { status: "idle" }
   | {
-      status: "error";
+      status: "rate_limit_exceeded" | "error";
       error: string;
       fieldErrors?: Partial<Record<string, string[]>>;
+      remaining: number;
+      retryAfterSeconds: number;
     }
-  | { status: "success"; data?: T };
+  | {
+      status: "success";
+      data?: T;
+    };

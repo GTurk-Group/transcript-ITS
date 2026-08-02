@@ -15,6 +15,9 @@ import { and, eq, gte, lt, count } from "drizzle-orm";
 type Options = {
   max: number; // max attempts in the window
   windowMs: number; // window size in milliseconds
+  ipAddress: string;
+  endpoint: string;
+  method: string;
 };
 
 type Result = {
@@ -30,83 +33,62 @@ type Result = {
  */
 export async function rateLimit(
   key: string,
+  ipAddress: string,
+  endpoint: string,
+  method: string,
   options: Options,
 ): Promise<Result> {
   const { max, windowMs } = options;
   const windowStart = new Date(Date.now() - windowMs);
 
-  try {
-    // Count existing attempts in window
-    const [{ total }] = await db
-      .select({ total: count() })
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(rateLimitAttempts)
+    .where(
+      and(
+        eq(rateLimitAttempts.key, key),
+        gte(rateLimitAttempts.createdAt, windowStart),
+      ),
+    );
+  const attempts = Number(total);
+
+  if (attempts >= max) {
+    // Find oldest attempt to calculate retry-after
+    const [oldest] = await db
+      .select({ createdAt: rateLimitAttempts.createdAt })
       .from(rateLimitAttempts)
       .where(
         and(
           eq(rateLimitAttempts.key, key),
           gte(rateLimitAttempts.createdAt, windowStart),
         ),
-      );
-
-    const attempts = Number(total);
-
-    if (attempts >= max) {
-      // Find oldest attempt to calculate retry-after
-      const [oldest] = await db
-        .select({ createdAt: rateLimitAttempts.createdAt })
-        .from(rateLimitAttempts)
-        .where(
-          and(
-            eq(rateLimitAttempts.key, key),
-            gte(rateLimitAttempts.createdAt, windowStart),
-          ),
-        )
-        .orderBy(rateLimitAttempts.createdAt)
-        .limit(1);
-
-      const retryMs = oldest
-        ? oldest.createdAt.getTime() + windowMs - Date.now()
-        : windowMs;
-
-      return {
-        allowed: false,
-        remaining: 0,
-        retryAfterSeconds: Math.ceil(Math.max(retryMs, 0) / 1000),
-      };
-    }
-
-    // Record this attempt
-    await db.insert(rateLimitAttempts).values({ key });
-
-    // Async cleanup — remove stale entries (fire and forget)
-    db.delete(rateLimitAttempts)
-      .where(
-        and(
-          eq(rateLimitAttempts.key, key),
-          lt(rateLimitAttempts.createdAt, windowStart),
-        ),
       )
-      .catch(() => {});
+      .orderBy(rateLimitAttempts.createdAt)
+      .limit(1);
+
+    const retryMs = oldest
+      ? oldest.createdAt.getTime() + windowMs - Date.now()
+      : windowMs;
 
     return {
-      allowed: true,
-      remaining: max - attempts - 1,
-      retryAfterSeconds: 0,
+      allowed: false,
+      remaining: 0,
+      retryAfterSeconds: Math.ceil(Math.max(retryMs, 0) / 1000),
     };
-  } catch {
-    // Table missing or DB error — fail open so login still works
-    return { allowed: true, remaining: max, retryAfterSeconds: 0 };
   }
+
+  // Record this attempt
+  await db
+    .insert(rateLimitAttempts)
+    .values({ key, ipAddress, endpoint, method });
+  return { allowed: true, remaining: max, retryAfterSeconds: 0 };
 }
 
 /**
  * Clear all attempts for a key (call after successful login).
  */
 export async function clearRateLimit(key: string): Promise<void> {
-  try {
-    await db.delete(rateLimitAttempts).where(eq(rateLimitAttempts.key, key));
-  } catch {
-    // Ignore — non-fatal
-  }
+  await db.delete(rateLimitAttempts).where(eq(rateLimitAttempts.key, key));
 }
 
 /**
