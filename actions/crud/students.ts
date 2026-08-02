@@ -51,7 +51,7 @@ function str(fd: FormData, key: string): string | null {
 export async function createStudentAction(
   _prev: ActionState,
   formData: FormData,
-): Promise<ActionState<{ id: string }>> {
+): Promise<ActionState> {
   const session = await assertPermission("manage_students");
 
   const parsed = studentSchema.safeParse({
@@ -70,7 +70,12 @@ export async function createStudentAction(
   });
 
   if (!parsed.success) {
-    return { status: "error", error: parsed.error.issues[0].message };
+    return {
+      status: "error",
+      error: parsed.error.issues[0].message,
+      remaining: 0,
+      retryAfterSeconds: 0,
+    };
   }
 
   const d = parsed.data;
@@ -113,11 +118,15 @@ export async function createStudentAction(
       return {
         status: "error",
         error: `Index number "${d.indexNumber}" is already registered.`,
+        remaining: 0,
+        retryAfterSeconds: 0,
       };
     }
     return {
       status: "error",
       error: "Failed to create student. Please try again.",
+      remaining: 0,
+      retryAfterSeconds: 0,
     };
   }
 }
@@ -148,18 +157,35 @@ export async function updateStudentAction(
   });
 
   if (!parsed.success) {
-    return { status: "error", error: parsed.error.issues[0].message };
+    return {
+      status: "error",
+      error: parsed.error.issues[0].message,
+      remaining: 0,
+      retryAfterSeconds: 0,
+    };
   }
 
   const { id, ...fields } = parsed.data;
-  if (!id) return { status: "error", error: "Missing student ID." };
+  if (!id)
+    return {
+      status: "error",
+      error: "Missing student ID.",
+      remaining: 0,
+      retryAfterSeconds: 0,
+    };
 
   const [existing] = await db
     .select()
     .from(students)
     .where(eq(students.id, id))
     .limit(1);
-  if (!existing) return { status: "error", error: "Student not found." };
+  if (!existing)
+    return {
+      status: "error",
+      error: "Student not found.",
+      remaining: 0,
+      retryAfterSeconds: 0,
+    };
 
   try {
     const [updated] = await db
@@ -205,11 +231,15 @@ export async function updateStudentAction(
       return {
         status: "error",
         error: "Index number is already taken by another student.",
+        remaining: 0,
+        retryAfterSeconds: 0,
       };
     }
     return {
       status: "error",
       error: "Failed to update student. Please try again.",
+      remaining: 0,
+      retryAfterSeconds: 0,
     };
   }
 }
@@ -224,7 +254,13 @@ export async function deleteStudentAction(id: string): Promise<ActionState> {
     .from(students)
     .where(eq(students.id, id))
     .limit(1);
-  if (!existing) return { status: "error", error: "Student not found." };
+  if (!existing)
+    return {
+      status: "error",
+      error: "Student not found.",
+      remaining: 0,
+      retryAfterSeconds: 0,
+    };
 
   try {
     await db.delete(students).where(eq(students.id, id));
@@ -248,9 +284,16 @@ export async function deleteStudentAction(id: string): Promise<ActionState> {
         status: "error",
         error:
           "Cannot delete — this student has grade records. Set their status to Withdrawn instead.",
+        remaining: 0,
+        retryAfterSeconds: 0,
       };
     }
-    return { status: "error", error: "Failed to delete student." };
+    return {
+      status: "error",
+      error: "Failed to delete student.",
+      remaining: 0,
+      retryAfterSeconds: 0,
+    };
   }
 }
 
@@ -267,7 +310,13 @@ export async function updateStudentStatusAction(
     .from(students)
     .where(eq(students.id, id))
     .limit(1);
-  if (!existing) return { status: "error", error: "Student not found." };
+  if (!existing)
+    return {
+      status: "error",
+      error: "Student not found.",
+      remaining: 0,
+      retryAfterSeconds: 0,
+    };
 
   await db.update(students).set({ status }).where(eq(students.id, id));
 

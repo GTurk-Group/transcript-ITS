@@ -116,9 +116,9 @@ export function dbErrorMessage(
  *   }, "[createProgrammeAction]");
  */
 export async function withAction<T>(
-  fn: () => Promise<ActionState<T>>,
+  fn: () => Promise<ActionState>,
   label: string,
-): Promise<ActionState<T>> {
+): Promise<ActionState> {
   try {
     return await fn();
   } catch (err) {
@@ -126,6 +126,8 @@ export async function withAction<T>(
     return {
       status: "error",
       error: "An unexpected error occurred. Please try again.",
+      remaining: 0,
+      retryAfterSeconds: 0,
     };
   }
 }

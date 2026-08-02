@@ -41,6 +41,8 @@ export async function setupAdminAction(
       status: "error",
       error:
         "Setup is locked — an admin account already exists. Go to /login to sign in.",
+      remaining: 0,
+      retryAfterSeconds: 0,
     };
   }
 
@@ -57,6 +59,8 @@ export async function setupAdminAction(
       status: "error",
       error: "Please fix the errors below.",
       fieldErrors: parsed.error.flatten().fieldErrors,
+      remaining: 0,
+      retryAfterSeconds: 0,
     };
   }
 
@@ -70,6 +74,8 @@ export async function setupAdminAction(
     return {
       status: "error",
       error: "Password hashing failed. Please try again.",
+      remaining: 0,
+      retryAfterSeconds: 0,
     };
   }
 
@@ -87,11 +93,15 @@ export async function setupAdminAction(
       return {
         status: "error",
         error: "An account with this email already exists.",
+        remaining: 0,
+        retryAfterSeconds: 0,
       };
     }
     return {
       status: "error",
       error: "Failed to create account. Check your database connection.",
+      remaining: 0,
+      retryAfterSeconds: 0,
     };
   }
 

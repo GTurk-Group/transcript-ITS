@@ -106,7 +106,7 @@ async function resolveServerValues(
 export async function createGradeAction(
   _prev: ActionState,
   formData: FormData,
-): Promise<ActionState<{ id: string }>> {
+): Promise<ActionState> {
   return withAction(async () => {
     const session = await assertPermission("enter_grades");
 
@@ -123,6 +123,8 @@ export async function createGradeAction(
         status: "error",
         error: "Please correct the errors below.",
         fieldErrors: parsed.error.flatten().fieldErrors,
+        remaining: 0,
+        retryAfterSeconds: 0,
       };
     }
 
@@ -139,6 +141,8 @@ export async function createGradeAction(
         status: "error",
         error: "Student not found.",
         fieldErrors: { studentId: ["Student does not exist"] },
+        remaining: 0,
+        retryAfterSeconds: 0,
       };
     }
 
@@ -150,6 +154,8 @@ export async function createGradeAction(
         status: "error",
         error: "Course not found.",
         fieldErrors: { courseId: ["Course does not exist"] },
+        remaining: 0,
+        retryAfterSeconds: 0,
       };
     }
 
@@ -176,6 +182,8 @@ export async function createGradeAction(
           error:
             "A grade for this student, course, and semester already exists. Use the correct-grade flow to update it.",
           fieldErrors: { grade: ["Duplicate grade — use correction flow"] },
+          remaining: 0,
+          retryAfterSeconds: 0,
         };
       }
       if (e.type === "foreign_key") {
@@ -183,12 +191,16 @@ export async function createGradeAction(
           status: "error",
           error:
             "One of the referenced records (student, course, or semester) does not exist.",
+          remaining: 0,
+          retryAfterSeconds: 0,
         };
       }
       console.error("[createGradeAction]", err);
       return {
         status: "error",
         error: "Failed to save grade. Please try again.",
+        remaining: 0,
+        retryAfterSeconds: 0,
       };
     }
 
@@ -234,7 +246,7 @@ export async function createGradeAction(
 export async function correctGradeAction(
   _prev: ActionState,
   formData: FormData,
-): Promise<ActionState<{ newGradeId: string }>> {
+): Promise<ActionState> {
   return withAction(async () => {
     const session = await assertPermission("enter_grades");
 
@@ -244,7 +256,12 @@ export async function correctGradeAction(
       .uuid("Invalid grade ID")
       .safeParse(formData.get("gradeId"));
     if (!gradeIdResult.success) {
-      return { status: "error", error: "Invalid grade ID." };
+      return {
+        status: "error",
+        error: "Invalid grade ID.",
+        remaining: 0,
+        retryAfterSeconds: 0,
+      };
     }
 
     const newGradeResult = z
@@ -256,6 +273,8 @@ export async function correctGradeAction(
       return {
         status: "error",
         error: newGradeResult.error.errors[0]?.message ?? "Invalid grade.",
+        remaining: 0,
+        retryAfterSeconds: 0,
       };
     }
 

@@ -31,11 +31,16 @@ type RecordResult = {
  */
 export async function recordTranscriptAction(
   studentId: string,
-): Promise<ActionState<RecordResult>> {
+): Promise<ActionState> {
   const session = await assertPermission("generate_transcripts");
 
   if (!studentId || typeof studentId !== "string") {
-    return { status: "error", error: "Invalid student ID." };
+    return {
+      status: "error",
+      error: "Invalid student ID.",
+      remaining: 0,
+      retryAfterSeconds: 0,
+    };
   }
 
   const headerStore = await headers();
@@ -48,14 +53,31 @@ export async function recordTranscriptAction(
   if (!outcome.ok) {
     const { error } = outcome;
     if (error.code === "STUDENT_NOT_FOUND")
-      return { status: "error", error: "Student not found." };
+      return {
+        status: "error",
+        error: "Student not found.",
+        remaining: 0,
+        retryAfterSeconds: 0,
+      };
     if (error.code === "INSTITUTION_NOT_FOUND")
-      return { status: "error", error: error.message };
+      return {
+        status: "error",
+        error: error.message,
+        remaining: 0,
+        retryAfterSeconds: 0,
+      };
     if (error.code === "NO_GRADE_RECORDS")
-      return { status: "error", error: error.message };
+      return {
+        status: "error",
+        error: error.message,
+        remaining: 0,
+        retryAfterSeconds: 0,
+      };
     return {
       status: "error",
       error: "Failed to create transcript record. Please try again.",
+      remaining: 0,
+      retryAfterSeconds: 0,
     };
   }
 
@@ -76,7 +98,12 @@ export async function deleteTranscriptAction(
   const session = await assertPermission("generate_transcripts");
 
   if (!transcriptId)
-    return { status: "error", error: "Invalid transcript ID." };
+    return {
+      status: "error",
+      error: "Invalid transcript ID.",
+      remaining: 0,
+      retryAfterSeconds: 0,
+    };
 
   const [record] = await db
     .select()
@@ -85,7 +112,12 @@ export async function deleteTranscriptAction(
     .limit(1);
 
   if (!record)
-    return { status: "error", error: "Transcript record not found." };
+    return {
+      status: "error",
+      error: "Transcript record not found.",
+      remaining: 0,
+      retryAfterSeconds: 0,
+    };
 
   await db.delete(transcripts).where(eq(transcripts.id, transcriptId));
 

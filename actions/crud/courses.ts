@@ -59,7 +59,7 @@ export type Course = typeof courses.$inferSelect;
 export async function createCourseAction(
   _prev: ActionState,
   formData: FormData,
-): Promise<ActionState<{ id: string }>> {
+): Promise<ActionState> {
   return withAction(async () => {
     const session = await assertPermission("manage_courses");
 
