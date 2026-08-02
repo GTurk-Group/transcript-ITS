@@ -208,7 +208,7 @@ export async function deleteProgrammeAction(id: string): Promise<ActionState> {
       await db.delete(programmes).where(eq(programmes.id, id));
     } catch (err) {
       const e = parseDbError(err);
-      if (e.type === "foreign_key") {
+      if (e.code === "foreign_key") {
         return {
           status: "error",
           error:
