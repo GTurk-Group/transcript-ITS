@@ -12,7 +12,7 @@ import { COOKIE_NAME } from "@/lib/auth/config";
 import { can } from "@/lib/auth/permissions";
 import { db } from "@/db";
 import { programmes } from "@/db/schema";
-import { ilike, or } from "drizzle-orm";
+// import { ilike, or } from "drizzle-orm";
 import { z } from "zod";
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -21,6 +21,7 @@ const MAX_ROWS = 2_000;
 const rowSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
   code: z.string().min(1, "Code is required").max(50),
+  programmeType: z.enum(["undergraduate", "diploma"]),
 });
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     .map((h) => h.trim().replace(/^"|"$/g, ""));
   const nameIdx = header.indexOf("name");
   const codeIdx = header.indexOf("code");
-
+  const programmeTypeIdx = header.indexOf("programme_type");
   if (nameIdx === -1 || codeIdx === -1) {
     return NextResponse.json(
       {
@@ -80,7 +81,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const dataLines = lines.slice(1).slice(0, MAX_ROWS);
 
   // ── Validate rows ─────────────────────────────────────────────────────────
-  type ValidRow = { name: string; code: string };
+  type ValidRow = {
+    name: string;
+    code: string;
+    programmeType: "undergraduate" | "diploma";
+  };
   type FailedRow = { row: number; message: string };
 
   const valid: ValidRow[] = [];
@@ -94,6 +99,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const parsed = rowSchema.safeParse({
       name: cols[nameIdx],
       code: cols[codeIdx],
+      programmeType: cols[programmeTypeIdx],
     });
     if (!parsed.success) {
       failures.push({ row: rowNum, message: parsed.error.issues[0].message });
@@ -148,6 +154,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         batch.map((r) => ({
           name: r.name,
           code: r.code.toUpperCase(),
+          programmeType: r.programmeType,
           isActive: true,
         })),
       );
@@ -156,13 +163,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       // Fall back to per-row
       for (const row of batch) {
         try {
-          await db
-            .insert(programmes)
-            .values({
-              name: row.name,
-              code: row.code.toUpperCase(),
-              isActive: true,
-            });
+          await db.insert(programmes).values({
+            name: row.name,
+            code: row.code.toUpperCase(),
+            programmeType: row.programmeType,
+            isActive: true,
+          });
           inserted++;
         } catch (e) {
           failures.push({
