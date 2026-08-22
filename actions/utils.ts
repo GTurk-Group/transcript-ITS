@@ -126,8 +126,6 @@ export async function withAction<T>(
     return {
       status: "error",
       error: "An unexpected error occurred. Please try again.",
-      remaining: 0,
-      retryAfterSeconds: 0,
     };
   }
 }

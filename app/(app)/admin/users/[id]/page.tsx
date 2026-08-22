@@ -6,21 +6,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter }           from "next/navigation";
+import { useRouter } from "next/navigation";
 
 type Admin = { id: string; email: string; role: "SUPER_ADMIN" | "ADMIN" | "VIEWER"; isActive: boolean; createdAt: string };
 
 export default function AdminUserDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const [id, setId]         = useState("");
-  const [admin, setAdmin]   = useState<Admin | null>(null);
+  const [id, setId] = useState("");
+  const [admin, setAdmin] = useState<Admin | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError]   = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Form state
-  const [role, setRole]         = useState<"SUPER_ADMIN" | "ADMIN" | "VIEWER">("ADMIN");
+  const [role, setRole] = useState<"SUPER_ADMIN" | "ADMIN" | "VIEWER">("ADMIN");
   const [newPassword, setNewPassword] = useState("");
   const [showPasswordField, setShowPasswordField] = useState(false);
   const [confirmDisable, setConfirmDisable] = useState(false);
@@ -105,7 +105,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
           </div>
 
           {success && <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">{success}</div>}
-          {error   && <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">{error}</div>}
+          {error && <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">{error}</div>}
 
           {/* Edit form */}
           <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
