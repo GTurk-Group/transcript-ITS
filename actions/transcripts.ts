@@ -31,7 +31,7 @@ type RecordResult = {
  */
 export async function recordTranscriptAction(
   studentId: string,
-): Promise<ActionState> {
+): Promise<ActionState<RecordResult>> {
   const session = await assertPermission("generate_transcripts");
 
   if (!studentId || typeof studentId !== "string") {

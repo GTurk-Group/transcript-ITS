@@ -1,4 +1,4 @@
-import type { AuthenticatedAdmin } from "@/types/auth";
+import type { AuthenticatedAdmin, Role } from "@/types/auth";
 
 export type Permission =
   | "manage_institution"
@@ -15,7 +15,17 @@ export type Permission =
   | "view_audit_logs"
   | "search_students";
 
-const PERMISSION_MAP: Record<Permission, string[]> = {
+export const ROLE_RANK: Record<Role, number> = {
+  VIEWER: 0,
+  ADMIN: 1,
+  SUPER_ADMIN: 2,
+};
+
+export function hasMinimumRole(role: Role, minimumRole: Role): boolean {
+  return ROLE_RANK[role] >= ROLE_RANK[minimumRole];
+}
+
+export const PERMISSION_MAP: Record<Permission, string[]> = {
   manage_institution: ["SUPER_ADMIN"],
   manage_registrar: ["SUPER_ADMIN"],
   manage_users: ["SUPER_ADMIN"],
