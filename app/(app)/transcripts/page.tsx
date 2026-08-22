@@ -241,5 +241,3 @@ function SearchForm({ query, autoFocus }: { query: string; autoFocus?: boolean }
 }
 
 // ── Client island for print button only ──────────────────────────────────────
-
-// import { PrintButton } from "@/components/transcript/print-button";

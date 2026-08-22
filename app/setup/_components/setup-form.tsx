@@ -32,39 +32,39 @@ export function SetupForm() {
     return (
         <form action={formAction} noValidate className="space-y-5">
 
-            {state.status === "error" ? (
+            {state.status === "error" && !state.fieldErrors && (
                 <div className="flex gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
                     <svg className="mt-0.5 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9.303 3.376c.866 1.5-.217 3.374-1.948 3.374H2.645c-1.73 0-2.813-1.874-1.948-3.374L10.05 3.378c.866-1.5 3.032-1.5 3.898 0l7.355 12.748z" />
                     </svg>
                     {state.error}
                 </div>
-            ) : null}
+            )}
 
-            <Field label="Full name" error={state.status === "error" ? state.fieldErrors?.name?.[0] : undefined}>
+            <Field label="Full name" error={state.status === "error" ? (state.status === "error" ? state.fieldErrors : undefined)?.name?.[0] : undefined}>
                 <input name="name" type="text" autoComplete="name" required disabled={isPending}
                     placeholder="Dr. Kofi Mensah"
-                    className={inputCls(state.status === "error" ? !!state.fieldErrors?.name : false)} />
+                    className={inputCls(!!(state.status === "error" ? state.fieldErrors : undefined)?.name)} />
             </Field>
 
-            <Field label="Email address" error={state.status === "error" ? state.fieldErrors?.email?.[0] : undefined}>
+            <Field label="Email address" error={state.status === "error" ? (state.status === "error" ? state.fieldErrors : undefined)?.email?.[0] : undefined}>
                 <input name="email" type="email" autoComplete="email" required disabled={isPending}
                     placeholder="admin@institution.edu"
-                    className={inputCls(state.status === "error" ? !!state.fieldErrors?.email : false)} />
+                    className={inputCls(!!(state.status === "error" ? state.fieldErrors : undefined)?.email)} />
             </Field>
 
             <Field label="Password" hint="At least 8 characters"
-                error={state.status === "error" ? state.fieldErrors?.password?.[0] : undefined}>
+                error={state.status === "error" ? (state.status === "error" ? state.fieldErrors : undefined)?.password?.[0] : undefined}>
                 <input name="password" type="password" autoComplete="new-password" required disabled={isPending}
                     placeholder="••••••••"
-                    className={inputCls(state.status === "error" ? !!state.fieldErrors?.password : false)} />
+                    className={inputCls(!!(state.status === "error" ? state.fieldErrors : undefined)?.password)} />
             </Field>
 
             <Field label="Confirm password"
-                error={state.status === "error" ? state.fieldErrors?.confirmPassword?.[0] : undefined}>
+                error={state.status === "error" ? (state.status === "error" ? state.fieldErrors : undefined)?.confirmPassword?.[0] : undefined}>
                 <input name="confirmPassword" type="password" autoComplete="new-password" required disabled={isPending}
                     placeholder="••••••••"
-                    className={inputCls(state.status === "error" ? !!state.fieldErrors?.confirmPassword : false)} />
+                    className={inputCls(!!(state.status === "error" ? state.fieldErrors : undefined)?.confirmPassword)} />
             </Field>
 
             <button type="submit" disabled={isPending}

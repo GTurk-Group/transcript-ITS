@@ -36,6 +36,7 @@ export type GradeDisplayRow = {
   /** Pre-computed at write time. Use parseFloat() to format. */
   computedQualityPoints: string;
   /** False means course does not count toward GPA — shown on transcript. */
+  isResit: boolean;
   isScoring: boolean | null;
   courseCode: string;
   courseTitle: string;
@@ -70,6 +71,7 @@ export async function fetchStudentGradeRows(
       creditHours: grades.creditHours,
       computedQualityPoints: grades.computedQualityPoints,
       isScoring: courses.isScoring,
+      isResit: grades.isResit,
       courseCode: courses.code,
       courseTitle: courses.title,
       semesterYear: semesters.year,
@@ -105,6 +107,7 @@ export async function fetchSemesterGradeRows(
       creditHours: grades.creditHours,
       computedQualityPoints: grades.computedQualityPoints,
       isScoring: courses.isScoring,
+      isResit: grades.isResit,
       courseCode: courses.code,
       courseTitle: courses.title,
       semesterYear: semesters.year,

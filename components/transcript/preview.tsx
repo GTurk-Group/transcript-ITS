@@ -1,12 +1,20 @@
 "use client";
 
+/** Never render "undefined" or "null" - return empty string instead */
+function safeStr(v: string | null | undefined): string {
+  if (v == null || v === "undefined" || v === "null" || v.trim() === "") return "";
+  return v.trim();
+}
+
 /**
- * TranscriptPreview — browser preview matching the UEW official transcript.
+ * TranscriptPreview — UEW official transcript layout.
  *
- * Print architecture:
- *   <thead>  — institution header (repeats every page)
- *   <tbody>  — semester blocks + class designation
- *   <tfoot>  — signature + footer (last page of academic record)
+ * Architecture:
+ *   <thead>  — Institution header, student info, warning bar (repeats on each page)
+ *   <tbody>  — Semester blocks (courses, totals, class designation) + signature block (last page only)
+ *
+ * The signature block is placed inside <tbody> after all semesters so it appears only on the final page.
+ * The border/frame is applied to the container via box-shadow and min-height: 100vh in print styles.
  */
 
 import { useMemo, useState } from "react";
@@ -63,6 +71,7 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
   const studentName = formatTranscriptStudentName(
     student.lastName,
     student.firstName,
+    student.middleName,
   );
 
   const base: React.CSSProperties = {
@@ -83,13 +92,13 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
             maxWidth: "794px",
             margin: "0 auto",
             background: "white",
-            // border: "2px solid #b71c1c",
-            boxShadow: "inset 0 0 0 2px #1a237e",
             position: "relative",
             overflow: "hidden",
+            paddingBottom: "50px",
+            // The frame is applied via box-shadow in print styles (see PrintStyles)
           }}
         >
-          {/* Seal watermark */}
+          {/* Watermark seal */}
           <div
             className="print-hide"
             style={{
@@ -115,7 +124,7 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
               zIndex: 1,
             }}
           >
-            {/* Header — repeats on every printed page */}
+            {/* ─── Header: repeats on every printed page ─── */}
             <thead>
               <tr>
                 <td style={{ padding: "8px 12px 0" }}>
@@ -124,75 +133,79 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                       display: "flex",
                       flexDirection: "row",
                       alignItems: "center",
-                      gap: "8px",
-                      marginBottom: "2px",
+                      gap: "12px",
+                      marginBottom: "4px",
                     }}
                   >
+                    {/* Logo */}
                     <div style={{ flexShrink: 0 }}>
                       <Image
                         src={universityLogo}
                         alt="University crest"
-                        width={150}
-                        height={150}
-                        style={{ border: "2px solid #2e5cb8" }}
-                        priority // optional, if it's above the fold
+                        width={120}
+                        height={120}
+                        priority
                       />
                     </div>
-                    <div style={{ flex: 1, textAlign: "center", marginTop: 0, padding: "15px" }}>
+
+                    {/* Institution details */}
+                    <div style={{ flex: 1, textAlign: "center" }}>
                       <div
                         style={{
-                          fontSize: "30px",
+                          fontSize: "24px",
                           fontWeight: 700,
-                          color: "#000",
                           letterSpacing: "0.4px",
-                          lineHeight: 1.25,
+                          lineHeight: 1.2,
                           textTransform: "uppercase",
+                          marginBottom: "2px",
                         }}
                       >
                         {institution.name}
                       </div>
                       <div
                         style={{
-                          fontSize: "20px",
+                          fontSize: "16px",
                           fontWeight: 700,
-                          color: "#000",
                           lineHeight: 1.3,
+                          marginBottom: "2px",
                         }}
                       >
                         Academic Affairs Office
                       </div>
-                      <div style={{ fontSize: "12px", lineHeight: 1.35 }}>
+                      <div style={{ fontSize: "11px", lineHeight: 1.4 }}>
                         {institution.address ?? UEW_CONTACT.poBox}
                       </div>
-                      <div style={{ fontSize: "12px", lineHeight: 1.35 }}>
-                        Email: {UEW_CONTACT.email}Website: {UEW_CONTACT.website}
+                      <div style={{ fontSize: "11px", lineHeight: 1.4 }}>
+                        Email: {UEW_CONTACT.email} &nbsp;|&nbsp; Website:{" "}
+                        {UEW_CONTACT.website}
                       </div>
                     </div>
                   </div>
 
+                  {/* Title bar */}
                   <div
                     style={{
                       background: "#2e5cb8",
                       color: "white",
                       textAlign: "center",
-                      fontSize: "11px",
+                      fontSize: "12px",
                       fontWeight: 700,
-                      padding: "4px",
-                      margin: "4px 0",
+                      padding: "3px",
+                      marginBottom: "8px",
                       letterSpacing: "0.5px",
+                      textTransform: "uppercase",
                     }}
                   >
                     OFFICIAL TRANSCRIPT OF ACADEMIC RECORD
                   </div>
 
+                  {/* Student information */}
                   <div
-                    className="uppercase"
                     style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr auto",
-                      gap: "2px 24px",
-                      fontSize: "10px",
-                      marginBottom: "4px",
+                      display: "flex",
+                      // gap: "2px 24px",
+                      fontSize: "11px",
+                      marginBottom: "6px",
                       alignItems: "start",
                     }}
                   >
@@ -205,23 +218,30 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                         label="Date Of Birth"
                         value={formatTranscriptDateOfBirth(student.dateOfBirth)}
                       />
-                      <InfoLine label="Programme" value={student.programme.name} />
+                      <InfoLine
+                        label="Programme"
+                        value={student.programme.name}
+                      />
                     </div>
-                    <div>
-                      <InfoLine label="Name" value={studentName} />
+                    <div className="-ml-24">
+                      <InfoLine label="Name" value={[student.lastName, ", ", student.firstName, " ", student.middleName].filter((x): x is string => typeof x === "string" && x.trim() !== "" && x !== "undefined").join(" ")} />
                       <InfoLine
                         label="Period"
                         value={formatStudyPeriod(
-                          student.entryYear,
-                          student.graduationYear,
+                          String(student.entryYear),
+                          String(student.graduationYear),
                         )}
                       />
+                      <div className="flex -mt-4 ml-64">
+                        {student.gender && (
+                          <InfoLine label="Gender" value={student.gender} />
+                        )}
+                      </div>
                     </div>
-                    <div style={{ paddingTop: "18px" }}>
-                      <InfoLine label="Gender" value={student.gender ?? "—"} />
-                    </div>
+
                   </div>
 
+                  {/* Warning bar */}
                   <div
                     style={{
                       background: "#2e5cb8",
@@ -229,7 +249,7 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                       textAlign: "center",
                       fontSize: "9px",
                       fontWeight: 700,
-                      padding: "3px",
+                      padding: "2px",
                       margin: "4px 0 6px",
                     }}
                   >
@@ -239,122 +259,137 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
               </tr>
             </thead>
 
-            {/* Footer — signature block on the last academic page */}
-            <tfoot>
-              <tr>
-                <td style={{ padding: "0 12px 8px" }}>
-                  <div style={{ marginTop: "40px", textAlign: "right", padding: "0 40px 8px" }}>
-                    <div style={{ display: "inline-block", textAlign: "center" }}>
-                      {registrar?.signaturePath && (
-                        <div
-                          style={{
-                            height: "36px",
-                            display: "flex",
-                            alignItems: "flex-end",
-                            justifyContent: "center",
-                            marginBottom: "12px",
-                          }}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={registrar.signaturePath}
-                            alt="Signature"
-                            style={{
-                              maxHeight: "34px",
-                              maxWidth: "120px",
-                              objectFit: "contain",
-                            }}
-                          />
-                        </div>
-                      )}
-                      <div
-                        style={{
-                          borderTop: "1px solid #000",
-                          width: "170px",
-                          margin: "0 auto 2px",
-                        }}
-                      />
-                      <div
-                        style={{
-                          fontSize: "9px",
-                          fontWeight: 700,
-                          lineHeight: 1.5,
-                        }}
-                      >
-                        DEPUTY REGISTRAR
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "9px",
-                          fontWeight: 700,
-                          lineHeight: 1.5,
-                        }}
-                      >
-                        DIVISION OF ACADEMIC AFFAIRS
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      borderTop: "0.5px solid #999",
-                      marginTop: "6px",
-                      paddingTop: "3px",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-end",
-                      fontSize: "7px",
-                      color: "#000",
-                      gap: "8px",
-                    }}
-                  >
-                    <span>{TRANSCRIPT_FOOTER_LEGEND}</span>
-                    <span style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                      Printed on: {printedOn}
-                      <br />
-                      {transcriptNumber}
-                    </span>
-                  </div>
-                </td>
-              </tr>
-            </tfoot>
-
+            {/* ─── Body: semester blocks + signature (last page only) ─── */}
             <tbody>
               <tr>
                 <td style={{ padding: "0 12px" }}>
                   {semestersWithTotals.length === 0 ? (
                     <p
                       style={{
-                        fontSize: "9px",
+                        fontSize: "11px",
                         color: "#555",
-                        padding: "8px 0",
+                        padding: "12px 0",
                       }}
                     >
                       No grade records found for this student.
                     </p>
                   ) : (
-                    semestersWithTotals.map((sem, index) => (
-                      <SemesterBlock
-                        key={sem.semesterId}
-                        sem={sem}
-                        collapsed={collapsed.has(sem.semesterId)}
-                        onToggle={() => toggle(sem.semesterId)}
-                        showClassDesignation={
-                          index === semestersWithTotals.length - 1
-                        }
-                        classification={summary.classification}
-                      />
-                    ))
+                    <>
+                      {/* Render all semesters */}
+                      {semestersWithTotals.map((sem, index) => (
+                        <SemesterBlock
+                          key={sem.semesterId}
+                          sem={sem}
+                          collapsed={collapsed.has(sem.semesterId)}
+                          onToggle={() => toggle(sem.semesterId)}
+                          showClassDesignation={
+                            index === semestersWithTotals.length - 1
+                          }
+                          classification={summary.classification}
+                        />
+                      ))}
+
+                      {/* ─── Signature block – only on the last page ─── */}
+                      <div className="w-full" style={{ marginTop: "50px" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            paddingRight: "20px",
+                          }}
+                        >
+                          <div style={{ textAlign: "center" }}>
+                            {registrar?.signaturePath && (
+                              <div
+                                style={{
+                                  height: "40px",
+                                  display: "flex",
+                                  alignItems: "flex-end",
+                                  justifyContent: "center",
+                                  marginBottom: "4px",
+                                }}
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={registrar.signaturePath}
+                                  alt="Signature"
+                                  style={{
+                                    maxHeight: "36px",
+                                    maxWidth: "120px",
+                                    objectFit: "contain",
+                                  }}
+                                />
+                              </div>
+                            )}
+                            <div
+                              style={{
+                                borderTop: "1.5px solid #000",
+                                width: "180px",
+                                margin: "0 auto 2px",
+                              }}
+                            />
+                            <div
+                              style={{
+                                fontSize: "11px",
+                                fontWeight: 700,
+                                lineHeight: 1.5,
+                              }}
+                            >
+                              DEPUTY REGISTRAR
+                            </div>
+                            <div
+                              style={{
+                                fontSize: "11px",
+                                fontWeight: 700,
+                                lineHeight: 1.5,
+                              }}
+                            >
+                              DIVISION OF ACADEMIC AFFAIRS
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Footer line with legend and print info */}
+                        <div
+                          style={{
+                            position: "fixed",
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            background: "white",
+                            padding: "6px 12px 4px",
+                            borderTop: "0.5px solid #999",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-end",
+                            fontSize: "7.5px",
+                            color: "#000",
+                            gap: "20px",
+                            zIndex: 1000,
+                          }}
+                        >
+                          <span>{TRANSCRIPT_FOOTER_LEGEND}</span>
+                          <span style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                            Printed on: {printedOn}
+                            {/* <br /> */}
+                            {/* {transcriptNumber} */}
+
+                          </span>
+                        </div>
+                      </div>
+                    </>
                   )}
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-      </div>
+      </div >
     </>
   );
 }
+
+// ─── Semester Block ──────────────────────────────────────────────────────────
 
 function SemesterBlock({
   sem,
@@ -370,7 +405,8 @@ function SemesterBlock({
   classification: string;
 }) {
   return (
-    <div style={{ marginBottom: "2px" }}>
+    <div style={{ marginBottom: "6px", pageBreakInside: "avoid" }}>
+      {/* Semester heading */}
       <button
         type="button"
         onClick={onToggle}
@@ -379,8 +415,8 @@ function SemesterBlock({
           width: "100%",
           background: "transparent",
           color: "#000",
-          padding: "2px 0",
-          fontSize: "10px",
+          padding: "4px 0 2px",
+          fontSize: "12px",
           fontWeight: 700,
           textAlign: "left",
           border: "none",
@@ -388,22 +424,31 @@ function SemesterBlock({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          borderBottom: "1px solid #2e5cb8",
+          marginBottom: "4px",
         }}
         aria-expanded={!collapsed}
       >
         <span>{sem.label}</span>
-        <span style={{ fontSize: "8px", opacity: 0.6 }} className="print-hide">
+        <span style={{ fontSize: "10px", opacity: 0.6 }} className="print-hide">
           {collapsed ? "▶" : "▼"}
         </span>
       </button>
 
       <div className={collapsed ? "sem-collapsed" : ""}>
         <table
-          style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}
+          style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            tableLayout: "fixed",
+            fontSize: "9px",
+          }}
         >
           <thead>
             <tr>
-              <th style={{ ...thBase, width: "72px", textAlign: "left" }}>Code</th>
+              <th style={{ ...thBase, width: "72px", textAlign: "left" }}>
+                Code
+              </th>
               <th style={{ ...thBase, textAlign: "left" }}>Course Title</th>
               <th style={{ ...thBase, width: "44px", textAlign: "center" }}>
                 Credits
@@ -427,10 +472,10 @@ function SemesterBlock({
                 colSpan={5}
                 style={{
                   ...tdTotals,
-                  fontSize: "9px",
+                  fontSize: "10px",
                   fontWeight: 700,
                   textAlign: "left",
-                  padding: "3px 6px",
+                  padding: "4px 8px",
                 }}
               >
                 TCR: {sem.creditsAttempted.toFixed(2)} &nbsp; TGP:{" "}
@@ -447,19 +492,23 @@ function SemesterBlock({
         {showClassDesignation && (
           <div
             style={{
-              marginTop: "2px",
+              marginTop: "6px",
               fontSize: "11px",
-              fontWeight: 300,
+              fontWeight: 400,
             }}
-          ><div></div>
-            <span>Class Designation: <span style={{ fontWeight: 700 }}>
-              {classification}</span></span>
+          >
+            <span>
+              Class Designation:{" "}
+              <span style={{ fontWeight: 700 }}>{classification}</span>
+            </span>
           </div>
         )}
       </div>
     </div>
   );
 }
+
+// ─── Course Row ──────────────────────────────────────────────────────────────
 
 function CourseRow({ course }: { course: TranscriptCourse }) {
   const displayGrade = course.grade === "F" ? "E" : course.grade;
@@ -469,7 +518,7 @@ function CourseRow({ course }: { course: TranscriptCourse }) {
       <td style={{ ...tdBase, textAlign: "left", fontWeight: 700 }}>
         {course.courseCode}
       </td>
-      <td className="uppercase" style={{ ...tdBase, textAlign: "left" }}>
+      <td style={{ ...tdBase, textAlign: "left", textTransform: "uppercase" }}>
         {course.courseTitle}
         {!course.isScoring && (
           <span style={{ marginLeft: "4px", fontSize: "7px", color: "#555" }}>
@@ -488,23 +537,28 @@ function CourseRow({ course }: { course: TranscriptCourse }) {
   );
 }
 
+// ─── InfoLine ─────────────────────────────────────────────────────────────────
+
 function InfoLine({ label, value }: { label: string; value: string }) {
   return (
     <div
       style={{
         display: "flex",
         gap: "4px",
-        fontSize: "10px",
-        lineHeight: 1.55,
+        fontSize: "11px",
+        lineHeight: 1.6,
+        alignItems: "baseline",
       }}
     >
-      <span style={{ fontWeight: 700, minWidth: "88px", flexShrink: 0 }}>
+      <span style={{ fontWeight: 700, minWidth: "45px", flexShrink: 0 }}>
         {label}:
       </span>
       <span>{value}</span>
     </div>
   );
 }
+
+// ─── LogoCrest (watermark) ───────────────────────────────────────────────────
 
 function LogoCrest({ size = 80, opacity = 1 }: { size?: number; opacity?: number }) {
   return (
@@ -544,56 +598,67 @@ function LogoCrest({ size = 80, opacity = 1 }: { size?: number; opacity?: number
   );
 }
 
+// ─── Print Styles ─────────────────────────────────────────────────────────────
+
 function PrintStyles() {
   return (
     <style
       dangerouslySetInnerHTML={{
         __html: `
-      @media print {
-        @page {
-          size: A4 portrait;
-          margin: 5mm 5mm;
-        }
+          @media print {
+            @page {
+              size: A4 portrait;
+              margin: 4mm 4mm;
+              @bottom-center {
+              content: "Page " counter(page);
+              font-size: 8px;
+              color: #000;
+              font-family: Arial, Helvetica, sans-serif;
+            }
+            }
 
-        body * { visibility: hidden; }
-        #transcript-print-root,
-        #transcript-print-root * { visibility: visible; }
+            body * { visibility: hidden; }
+            #transcript-print-root,
+            #transcript-print-root * { visibility: visible; }
 
-        #transcript-print-root {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-        }
+            #transcript-print-root {
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+            }
 
-        #transcript-document {
-          width: 100%;
-          max-width: 100%;
-          overflow: visible !important;
-          // border: 2px solid #b71c1c !important;
-          // box-shadow: inset 0 0 0 2px #1a237e !important;
-        }
+            #transcript-document {
+              width: 100%;
+              max-width: 100%;
+              overflow: visible !important;
+              min-height: 100vh;
+              // box-shadow: inset 0 0 0 2px #1a237e !important;
+              border: none !important;
+            }
 
-        thead { display: table-header-group; }
-        tfoot { display: table-footer-group; }
-        tbody { display: table-row-group; }
+            thead { display: table-header-group; }
+            tbody { display: table-row-group; }
 
-        .sem-collapsed { display: block !important; visibility: visible !important; }
-        .print-hide { display: none !important; }
-        .semester-header-btn { cursor: default; }
+            .sem-collapsed { display: block !important; visibility: visible !important; }
+            .print-hide { display: none !important; }
+            .semester-header-btn { cursor: default; }
 
-        tr { page-break-inside: avoid; }
+            tr { page-break-inside: avoid; }
 
-        * {
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-        }
-      }
-    `,
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+          }
+        `,
       }}
     />
   );
 }
+
+// ─── Shared styles ────────────────────────────────────────────────────────────
 
 const thBase: React.CSSProperties = {
   background: "#d4d4d4",

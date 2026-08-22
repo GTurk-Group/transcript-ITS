@@ -29,16 +29,11 @@ export type AuthenticatedAdmin = SessionPayload & {
  * Shape returned by server actions that can fail with validation errors.
  * Compatible with React 19 useActionState.
  */
-export type ActionState =
+export type ActionState<T = unknown> =
   | { status: "idle" }
   | {
-      status: "rate_limit_exceeded" | "error";
+      status: "error";
       error: string;
       fieldErrors?: Partial<Record<string, string[]>>;
-      remaining: number;
-      retryAfterSeconds: number;
     }
-  | {
-      status: "success";
-      data?: unknown;
-    };
+  | { status: "success"; data?: T };

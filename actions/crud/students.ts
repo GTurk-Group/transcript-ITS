@@ -17,6 +17,9 @@ const studentSchema = z.object({
   firstName: z.string().min(1).max(100),
   lastName: z.string().min(1).max(100),
   middleName: z.string().nullable().optional(),
+  studentType: z
+    .enum(["UNDERGRADUATE", "POSTGRADUATE"])
+    .default("UNDERGRADUATE"),
   dateOfBirth: z.string().nullable().optional(),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).nullable().optional(),
   programmeId: z.string().uuid(),
@@ -51,7 +54,7 @@ function str(fd: FormData, key: string): string | null {
 export async function createStudentAction(
   _prev: ActionState,
   formData: FormData,
-): Promise<ActionState> {
+): Promise<ActionState<{ id: string }>> {
   const session = await assertPermission("manage_students");
 
   const parsed = studentSchema.safeParse({
@@ -59,6 +62,9 @@ export async function createStudentAction(
     firstName: str(formData, "firstName"),
     lastName: str(formData, "lastName"),
     middleName: str(formData, "middleName"),
+    studentType: (str(formData, "studentType") ?? "UNDERGRADUATE") as
+      | "UNDERGRADUATE"
+      | "POSTGRADUATE",
     dateOfBirth: str(formData, "dateOfBirth"),
     gender: str(formData, "gender"),
     programmeId: str(formData, "programmeId"),
@@ -70,12 +76,7 @@ export async function createStudentAction(
   });
 
   if (!parsed.success) {
-    return {
-      status: "error",
-      error: parsed.error.issues[0].message,
-      remaining: 0,
-      retryAfterSeconds: 0,
-    };
+    return { status: "error", error: parsed.error.issues[0].message };
   }
 
   const d = parsed.data;
@@ -88,6 +89,7 @@ export async function createStudentAction(
         firstName: d.firstName,
         middleName: d.middleName ?? null,
         lastName: d.lastName,
+        studentType: d.studentType ?? "UNDERGRADUATE",
         dateOfBirth: d.dateOfBirth ?? null,
         gender: d.gender ?? null,
         programmeId: d.programmeId,
@@ -118,15 +120,11 @@ export async function createStudentAction(
       return {
         status: "error",
         error: `Index number "${d.indexNumber}" is already registered.`,
-        remaining: 0,
-        retryAfterSeconds: 0,
       };
     }
     return {
       status: "error",
       error: "Failed to create student. Please try again.",
-      remaining: 0,
-      retryAfterSeconds: 0,
     };
   }
 }
@@ -145,6 +143,9 @@ export async function updateStudentAction(
     firstName: str(formData, "firstName"),
     lastName: str(formData, "lastName"),
     middleName: str(formData, "middleName"),
+    studentType: (str(formData, "studentType") ?? "UNDERGRADUATE") as
+      | "UNDERGRADUATE"
+      | "POSTGRADUATE",
     dateOfBirth: str(formData, "dateOfBirth"),
     gender: str(formData, "gender"),
     programmeId: str(formData, "programmeId"),
@@ -157,35 +158,18 @@ export async function updateStudentAction(
   });
 
   if (!parsed.success) {
-    return {
-      status: "error",
-      error: parsed.error.issues[0].message,
-      remaining: 0,
-      retryAfterSeconds: 0,
-    };
+    return { status: "error", error: parsed.error.issues[0].message };
   }
 
   const { id, ...fields } = parsed.data;
-  if (!id)
-    return {
-      status: "error",
-      error: "Missing student ID.",
-      remaining: 0,
-      retryAfterSeconds: 0,
-    };
+  if (!id) return { status: "error", error: "Missing student ID." };
 
   const [existing] = await db
     .select()
     .from(students)
     .where(eq(students.id, id))
     .limit(1);
-  if (!existing)
-    return {
-      status: "error",
-      error: "Student not found.",
-      remaining: 0,
-      retryAfterSeconds: 0,
-    };
+  if (!existing) return { status: "error", error: "Student not found." };
 
   try {
     const [updated] = await db
@@ -203,6 +187,9 @@ export async function updateStudentAction(
         ...(fields.entryYear !== undefined && { entryYear: fields.entryYear }),
         ...(fields.status !== undefined && { status: fields.status }),
         middleName: fields.middleName ?? null,
+        ...(fields.studentType !== undefined && {
+          studentType: fields.studentType as "UNDERGRADUATE" | "POSTGRADUATE",
+        }),
         dateOfBirth: fields.dateOfBirth ?? null,
         gender: fields.gender ?? null,
         graduationYear: fields.graduationYear ?? null,
@@ -231,15 +218,11 @@ export async function updateStudentAction(
       return {
         status: "error",
         error: "Index number is already taken by another student.",
-        remaining: 0,
-        retryAfterSeconds: 0,
       };
     }
     return {
       status: "error",
       error: "Failed to update student. Please try again.",
-      remaining: 0,
-      retryAfterSeconds: 0,
     };
   }
 }
@@ -254,13 +237,7 @@ export async function deleteStudentAction(id: string): Promise<ActionState> {
     .from(students)
     .where(eq(students.id, id))
     .limit(1);
-  if (!existing)
-    return {
-      status: "error",
-      error: "Student not found.",
-      remaining: 0,
-      retryAfterSeconds: 0,
-    };
+  if (!existing) return { status: "error", error: "Student not found." };
 
   try {
     await db.delete(students).where(eq(students.id, id));
@@ -284,16 +261,9 @@ export async function deleteStudentAction(id: string): Promise<ActionState> {
         status: "error",
         error:
           "Cannot delete — this student has grade records. Set their status to Withdrawn instead.",
-        remaining: 0,
-        retryAfterSeconds: 0,
       };
     }
-    return {
-      status: "error",
-      error: "Failed to delete student.",
-      remaining: 0,
-      retryAfterSeconds: 0,
-    };
+    return { status: "error", error: "Failed to delete student." };
   }
 }
 
@@ -310,13 +280,7 @@ export async function updateStudentStatusAction(
     .from(students)
     .where(eq(students.id, id))
     .limit(1);
-  if (!existing)
-    return {
-      status: "error",
-      error: "Student not found.",
-      remaining: 0,
-      retryAfterSeconds: 0,
-    };
+  if (!existing) return { status: "error", error: "Student not found." };
 
   await db.update(students).set({ status }).where(eq(students.id, id));
 
@@ -346,6 +310,7 @@ export async function getStudents() {
       firstName: students.firstName,
       middleName: students.middleName,
       lastName: students.lastName,
+      studentType: students.studentType,
       dateOfBirth: students.dateOfBirth,
       gender: students.gender,
       programmeId: students.programmeId,
@@ -371,6 +336,7 @@ export async function getStudentById(id: string) {
       firstName: students.firstName,
       middleName: students.middleName,
       lastName: students.lastName,
+      studentType: students.studentType,
       dateOfBirth: students.dateOfBirth,
       gender: students.gender,
       programmeId: students.programmeId,

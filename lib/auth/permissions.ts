@@ -1,32 +1,9 @@
-/**
- * Client-safe permission utilities.
- *
- * This file has NO server-only imports (no next/headers, no next/navigation).
- * It can be imported safely by both Server Components and Client Components.
- *
- * Server-only guards (requireAuth, requirePermission, assertPermission) stay
- * in rbac.ts — only import those from Server Components and server actions.
- */
-
-import type { AuthenticatedAdmin, Role } from "@/types/auth";
-
-// ─── Role hierarchy ───────────────────────────────────────────────────────────
-
-export const ROLE_RANK: Record<Role, number> = {
-  VIEWER: 0,
-  ADMIN: 1,
-  SUPER_ADMIN: 2,
-};
-
-export function hasMinimumRole(userRole: Role, minimumRole: Role): boolean {
-  return ROLE_RANK[userRole] >= ROLE_RANK[minimumRole];
-}
-
-// ─── Permission map ───────────────────────────────────────────────────────────
+import type { AuthenticatedAdmin } from "@/types/auth";
 
 export type Permission =
-  | "manage_users"
   | "manage_institution"
+  | "manage_registrar"
+  | "manage_users"
   | "manage_programmes"
   | "manage_students"
   | "manage_courses"
@@ -36,39 +13,34 @@ export type Permission =
   | "view_transcripts"
   | "view_grades"
   | "view_audit_logs"
-  | "manage_registrar"
   | "search_students";
 
-export const PERMISSION_MAP: Record<Permission, Role[]> = {
-  manage_users: ["SUPER_ADMIN"],
+const PERMISSION_MAP: Record<Permission, string[]> = {
   manage_institution: ["SUPER_ADMIN"],
+  manage_registrar: ["SUPER_ADMIN"],
+  manage_users: ["SUPER_ADMIN"],
   manage_programmes: ["SUPER_ADMIN", "ADMIN"],
-  manage_students: ["SUPER_ADMIN", "ADMIN", "VIEWER"],
-  search_students: ["SUPER_ADMIN", "ADMIN", "VIEWER"],
+  manage_students: ["SUPER_ADMIN", "ADMIN"],
   manage_courses: ["SUPER_ADMIN", "ADMIN"],
   enter_grades: ["SUPER_ADMIN", "ADMIN"],
   bulk_upload: ["SUPER_ADMIN", "ADMIN"],
   generate_transcripts: ["SUPER_ADMIN", "ADMIN", "VIEWER"],
   view_transcripts: ["SUPER_ADMIN", "ADMIN", "VIEWER"],
-  view_grades: ["SUPER_ADMIN", "ADMIN"],
-  view_audit_logs: ["SUPER_ADMIN"],
-  manage_registrar: ["SUPER_ADMIN"],
+  view_grades: ["SUPER_ADMIN", "ADMIN", "VIEWER"],
+  view_audit_logs: ["SUPER_ADMIN", "ADMIN"],
+  search_students: ["SUPER_ADMIN", "ADMIN", "VIEWER"],
 };
 
-/**
- * Check whether a session has a specific permission.
- * Safe to call in Client Components — no server APIs used.
- */
 export function can(
   session: AuthenticatedAdmin,
   permission: Permission,
 ): boolean {
-  return PERMISSION_MAP[permission].includes(session.role);
+  return PERMISSION_MAP[permission]?.includes(session.role) ?? false;
 }
 
 export function canAll(
   session: AuthenticatedAdmin,
-  ...permissions: Permission[]
+  permissions: Permission[],
 ): boolean {
   return permissions.every((p) => can(session, p));
 }

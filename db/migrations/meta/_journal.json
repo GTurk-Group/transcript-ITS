@@ -8,6 +8,13 @@
       "when": 1778712357379,
       "tag": "0000_goofy_living_mummy",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786046881708,
+      "tag": "0001_bizarre_demogoblin",
+      "breakpoints": true
     }
   ]
 }

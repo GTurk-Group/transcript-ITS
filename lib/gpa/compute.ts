@@ -105,9 +105,9 @@ export function sumSemesters(semesters: SemesterGPAResult[]): {
  * Thresholds follow the standard 4.0-scale convention used by most West
  * African universities. Adjust per institution policy if needed.
  *
- * cgpa >= 3.60  → First Class
+ * cgpa >= 3.50  → First Class
  * cgpa >= 3.00  → Second Class Upper
- * cgpa >= 2.50  → Second Class Lower
+ * cgpa >= 2.49  → Second Class Lower
  * cgpa >= 2.00  → Third Class
  * cgpa >= 1.00  → Pass
  * cgpa  < 1.00  → Fail
@@ -117,7 +117,11 @@ export function classifyGPA(
   cgpa: number,
   hasResults: boolean,
   programmeType: import("./types").ProgrammeType = "DEGREE",
+  studentType: "UNDERGRADUATE" | "POSTGRADUATE" = "UNDERGRADUATE",
 ): GradeClassification {
+  // Postgraduate programmes carry no class designation
+  if (studentType === "POSTGRADUATE") return "Postgraduate";
+
   if (!hasResults) return "No Results";
 
   if (programmeType === "DIPLOMA") {
@@ -129,9 +133,9 @@ export function classifyGPA(
   }
 
   // Degree classification scale (default)
-  if (cgpa >= 3.6) return "First Class";
+  if (cgpa >= 3.5) return "First Class";
   if (cgpa >= 3.0) return "Second Class Upper";
-  if (cgpa >= 2.5) return "Second Class Lower";
+  if (cgpa >= 2.49) return "Second Class Lower";
   if (cgpa >= 2.0) return "Third Class";
   if (cgpa >= 1.0) return "Pass";
   return "Fail";
@@ -152,7 +156,10 @@ export function formatSemesterLabel(
   year: number,
   term: "FIRST" | "SECOND",
 ): string {
-  const termLabel = term === "FIRST" ? "First Semester" : "Second Semester";
+  const termLabel =
+    term === "FIRST"
+      ? "Academic Year First Semester"
+      : "Academic Year Second Semester";
   return `${year}/${year + 1} – ${termLabel}`;
 }
 

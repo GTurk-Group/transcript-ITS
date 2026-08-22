@@ -40,7 +40,7 @@ const GRADE_OPTIONS = Object.keys(DEFAULT_GRADE_SCALE) as Array<
   keyof typeof DEFAULT_GRADE_SCALE
 >;
 
-const initialState: ActionState<{ id: string }> = { status: "idle" };
+const initialState: ActionState = { status: "idle" };
 
 export function GradeEntryForm({ semesters, courses, students }: Props) {
   const [state, formAction, isPending] = useActionState(

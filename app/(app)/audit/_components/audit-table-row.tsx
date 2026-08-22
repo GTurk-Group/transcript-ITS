@@ -17,18 +17,18 @@ import type { AuditRow } from "@/lib/audit/queries";
 type Props = { row: AuditRow };
 
 export function AuditTableRow({ row }: Props) {
-  const [expanded, setExpanded]   = useState(false);
-  const [showId,   setShowId]     = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [showId, setShowId] = useState(false);
   const hasDiff = row.before != null || row.after != null;
 
-  const cat    = classifyAction(row.action);
+  const cat = classifyAction(row.action);
   const styles = ACTION_CATEGORY_STYLES[cat];
 
   const formattedTime = row.createdAt.toLocaleString("en-GB", {
-    day:    "2-digit",
-    month:  "short",
-    year:   "numeric",
-    hour:   "2-digit",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
     hour12: false,
@@ -146,8 +146,8 @@ export function AuditTableRow({ row }: Props) {
 
 const ROLE_STYLES: Record<string, string> = {
   SUPER_ADMIN: "bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300",
-  ADMIN:       "bg-blue-50   text-blue-700   dark:bg-blue-950   dark:text-blue-300",
-  VIEWER:      "bg-gray-100  text-gray-600   dark:bg-gray-800   dark:text-gray-400",
+  ADMIN: "bg-blue-50   text-blue-700   dark:bg-blue-950   dark:text-blue-300",
+  VIEWER: "bg-gray-100  text-gray-600   dark:bg-gray-800   dark:text-gray-400",
 };
 
 function RolePill({ role }: { role: string }) {

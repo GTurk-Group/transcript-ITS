@@ -103,9 +103,9 @@ export async function assembleTranscript(
         firstName: students.firstName,
         middleName: students.middleName,
         lastName: students.lastName,
-        dateOfBirth: students.dateOfBirth,
-        gender: students.gender,
         level: students.level,
+        gender: students.gender,
+        dateOfBirth: students.dateOfBirth,
         entryYear: students.entryYear,
         graduationYear: students.graduationYear,
         status: students.status,
@@ -113,6 +113,7 @@ export async function assembleTranscript(
         programmeName: programmes.name,
         programmeCode: programmes.code,
         programmeType: programmes.programmeType,
+        studentType: students.studentType,
       })
       .from(students)
       .innerJoin(programmes, eq(students.programmeId, programmes.id))
@@ -211,6 +212,27 @@ export async function assembleTranscript(
       scoringCourseCount = hydrated.courseCount;
     }
 
+    // ── Resit adjustment ───────────────────────────────────────────────────
+    // Resit attempts count double: credit_hours × 2 in the denominator,
+    // computed_quality_points × 2 in the numerator.
+    // The SQL aggregate already counted them once; here we add the extra.
+    const resitCourses = courses.filter(
+      (r) => r.isResit && r.isScoring !== false,
+    );
+    for (const rc of resitCourses) {
+      const extraQP = parseFloat(rc.computedQualityPoints);
+      const extraCH = rc.creditHours;
+      if (Number.isFinite(extraQP) && extraCH > 0) {
+        totalQualityPoints += extraQP; // double quality points
+        creditsAttempted += extraCH; // double credits attempted
+        if (rc.grade !== "F") creditsEarned += extraCH; // double credits earned (pass only)
+      }
+    }
+    // Recompute SGPA after resit adjustment
+    if (resitCourses.length > 0) {
+      sgpa = computeGPA(totalQualityPoints, creditsAttempted);
+    }
+
     // Build typed course rows — course codes ordered by the DB query (ASC)
     const transcriptCourses: TranscriptCourse[] = courses.map((row) => {
       const gp = parseFloat(row.gradePoint);
@@ -227,6 +249,7 @@ export async function assembleTranscript(
         qualityPoints: Number.isFinite(qp) ? qp : 0,
         qualityPointsFormatted: Number.isFinite(qp) ? qp.toFixed(2) : "0.00",
         isScoring: row.isScoring !== false, // null treated as true
+        isResit: row.isResit === true,
       };
     });
 
@@ -279,6 +302,9 @@ export async function assembleTranscript(
       cgpa,
       hasResults,
       ((s as any).programmeType ?? "DEGREE") as "DEGREE" | "DIPLOMA",
+      ((s as any).studentType ?? "UNDERGRADUATE") as
+        | "UNDERGRADUATE"
+        | "POSTGRADUATE",
     ),
   };
 
@@ -289,10 +315,18 @@ export async function assembleTranscript(
     indexNumber: s.indexNumber,
     firstName: s.firstName,
     lastName: s.lastName,
-    middleName: s.middleName,
-    fullName: `${s.firstName} ${s.middleName} ${s.lastName}`,
-    gender: s.gender,
-    dateOfBirth: s.dateOfBirth,
+    fullName: [s.firstName, (s as any).middleName || null, s.lastName]
+      .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+      .join(" "),
+    middleName:
+      typeof (s as any).middleName === "string" && (s as any).middleName.trim()
+        ? (s as any).middleName.trim()
+        : null,
+    studentType: ((s as any).studentType ?? "UNDERGRADUATE") as
+      | "UNDERGRADUATE"
+      | "POSTGRADUATE",
+    dateOfBirth: (s as any).dateOfBirth ?? null,
+    gender: (s as any).gender ?? null,
     level: s.level,
     entryYear: s.entryYear,
     graduationYear: s.graduationYear,

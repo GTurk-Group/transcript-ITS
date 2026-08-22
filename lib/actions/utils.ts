@@ -15,6 +15,7 @@ import type { ActionState } from "@/types/auth";
 
 type ParsedDbError = {
   code: string;
+  type: string;
   message: string;
   detail?: string;
 };
@@ -28,11 +29,12 @@ export function parseDbError(err: unknown): ParsedDbError {
     const e = err as Record<string, unknown>;
     return {
       code: String(e.code ?? "UNKNOWN"),
+      type: String(e.code ?? "UNKNOWN"),
       message: String(e.message ?? "An unexpected error occurred"),
       detail: e.detail ? String(e.detail) : undefined,
     };
   }
-  return { code: "UNKNOWN", message: String(err) };
+  return { code: "UNKNOWN", type: "UNKNOWN", message: String(err) };
 }
 
 /**

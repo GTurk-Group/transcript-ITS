@@ -80,6 +80,7 @@ export type GradeClassification =
   | "Credit"
   | "Pass"
   | "Fail"
+  | "Postgraduate"
   | "No Results";
 
 /** Programme type determines which classification scale is used. */

@@ -1,18 +1,3 @@
-/**
- * Database schema — Drizzle ORM.
- *
- * This is the single source of truth for the database structure.
- * Run `pnpm db:push` (dev) or `pnpm db:migrate` (prod) after changes.
- *
- * Schema additions from the integration audit:
- *   - transcripts.fileKey        — S3/local path to the generated PDF
- *   - transcripts.checksum       — SHA-256 of the data payload (tamper detection)
- *   - transcripts.status         — PENDING | GENERATING | COMPLETED | FAILED
- *   - transcripts.registrarId    — which registrar signed the document
- *   - grades.isSuperseded        — soft-delete for grade corrections
- *   - grades.supersededById      — self-referential link to the corrected row
- */
-
 import {
   pgTable,
   uuid,
@@ -30,18 +15,13 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
-// ─── Enums ────────────────────────────────────────────────────────────────────
-
 export const roleEnum = pgEnum("role", ["SUPER_ADMIN", "ADMIN", "VIEWER"]);
-
 export const semesterEnum = pgEnum("semester", ["FIRST", "SECOND"]);
-
 export const studentStatusEnum = pgEnum("student_status", [
   "ACTIVE",
   "GRADUATED",
   "WITHDRAWN",
 ]);
-
 export const gradeEnum = pgEnum("grade", [
   "A",
   "B+",
@@ -52,22 +32,18 @@ export const gradeEnum = pgEnum("grade", [
   "D",
   "F",
 ]);
-
 export const transcriptStatusEnum = pgEnum("transcript_status", [
   "PENDING",
   "GENERATING",
   "COMPLETED",
   "FAILED",
 ]);
-
 export const uploadJobStatusEnum = pgEnum("upload_job_status", [
   "PENDING",
   "PROCESSING",
   "COMPLETED",
   "FAILED",
 ]);
-
-// ─── Institution ──────────────────────────────────────────────────────────────
 
 export const institution = pgTable("institution", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -76,8 +52,6 @@ export const institution = pgTable("institution", {
   logoPath: text("logo_path"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
-
-// ─── Admins ───────────────────────────────────────────────────────────────────
 
 export const admins = pgTable(
   "admins",
@@ -89,10 +63,8 @@ export const admins = pgTable(
     isActive: boolean("is_active").default(true).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => [uniqueIndex("admins_email_unique").on(table.email)],
+  (t) => ({ emailUnique: uniqueIndex("admins_email_unique").on(t.email) }),
 );
-
-// ─── Programmes ───────────────────────────────────────────────────────────────
 
 export const programmes = pgTable(
   "programmes",
@@ -100,17 +72,17 @@ export const programmes = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     name: varchar("name", { length: 255 }).notNull(),
     code: varchar("code", { length: 50 }).notNull(),
+    programmeType: varchar("programme_type", { length: 20 })
+      .notNull()
+      .default("DEGREE"),
     isActive: boolean("is_active").default(true),
-    programmeType: varchar("programme_type").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => ({
-    nameUnique: uniqueIndex("programmes_name_unique").on(table.name),
-    codeUnique: uniqueIndex("programmes_code_unique").on(table.code),
+  (t) => ({
+    nameUnique: uniqueIndex("programmes_name_unique").on(t.name),
+    codeUnique: uniqueIndex("programmes_code_unique").on(t.code),
   }),
 );
-
-// ─── Students ─────────────────────────────────────────────────────────────────
 
 export const students = pgTable(
   "students",
@@ -120,8 +92,11 @@ export const students = pgTable(
     firstName: varchar("first_name", { length: 100 }).notNull(),
     middleName: varchar("middle_name", { length: 100 }),
     lastName: varchar("last_name", { length: 100 }).notNull(),
+    studentType: varchar("student_type", { length: 20 })
+      .notNull()
+      .default("UNDERGRADUATE"),
     dateOfBirth: date("date_of_birth"),
-    gender: varchar("gender"),
+    gender: varchar("gender", { length: 10 }),
     programmeId: uuid("programme_id")
       .references(() => programmes.id)
       .notNull(),
@@ -129,17 +104,14 @@ export const students = pgTable(
     entryYear: integer("entry_year").notNull(),
     graduationYear: integer("graduation_year"),
     status: studentStatusEnum("status").default("ACTIVE").notNull(),
-    // Contact fields — populated via manual entry or bulk upload
     email: varchar("email", { length: 255 }),
     phoneNumber: varchar("phone_number", { length: 50 }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => ({
-    indexUnique: uniqueIndex("students_index_unique").on(table.indexNumber),
+  (t) => ({
+    indexUnique: uniqueIndex("students_index_unique").on(t.indexNumber),
   }),
 );
-
-// ─── Courses ──────────────────────────────────────────────────────────────────
 
 export const courses = pgTable(
   "courses",
@@ -152,12 +124,8 @@ export const courses = pgTable(
     isActive: boolean("is_active").default(true),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => ({
-    codeUnique: uniqueIndex("courses_code_unique").on(table.code),
-  }),
+  (t) => ({ codeUnique: uniqueIndex("courses_code_unique").on(t.code) }),
 );
-
-// ─── Semesters ────────────────────────────────────────────────────────────────
 
 export const semesters = pgTable(
   "semesters",
@@ -167,21 +135,15 @@ export const semesters = pgTable(
     semester: semesterEnum("semester").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => ({
-    uniqueSemester: uniqueIndex("unique_year_semester").on(
-      table.year,
-      table.semester,
-    ),
+  (t) => ({
+    uniqueSemester: uniqueIndex("unique_year_semester").on(t.year, t.semester),
   }),
 );
-
-// ─── Grades ───────────────────────────────────────────────────────────────────
 
 export const grades = pgTable(
   "grades",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-
     studentId: uuid("student_id")
       .references(() => students.id)
       .notNull(),
@@ -191,39 +153,30 @@ export const grades = pgTable(
     semesterId: uuid("semester_id")
       .references(() => semesters.id)
       .notNull(),
-
     grade: gradeEnum("grade").notNull(),
-
-    // Server-computed at write time — NEVER accepted from client
     gradePoint: numeric("grade_point", { precision: 3, scale: 2 }).notNull(),
-    creditHours: integer("credit_hours").notNull(), // snapshot from courses at entry time
+    creditHours: integer("credit_hours").notNull(),
     computedQualityPoints: numeric("computed_quality_points", {
       precision: 6,
       scale: 2,
     }).notNull(),
-
-    // Grade correction support — soft supersede, never hard delete
+    isResit: boolean("is_resit").default(false).notNull(),
     isSuperseded: boolean("is_superseded").default(false).notNull(),
-    supersededById: uuid("superseded_by_id"), // FK to grades.id set after correction row is inserted
-
+    supersededById: uuid("superseded_by_id"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => ({
-    // Only one active grade per (student, course, semester) — partial unique index
+  (t) => ({
     activeGradeUnique: uniqueIndex("unique_active_student_course_semester")
-      .on(table.studentId, table.courseId, table.semesterId)
+      .on(t.studentId, t.courseId, t.semesterId)
       .where(sql`is_superseded = false`),
-
-    studentIdx: index("grades_student_idx").on(table.studentId),
-    semesterIdx: index("grades_semester_idx").on(table.semesterId),
+    studentIdx: index("grades_student_idx").on(t.studentId),
+    semesterIdx: index("grades_semester_idx").on(t.semesterId),
     studentSemesterIdx: index("grades_student_semester_idx").on(
-      table.studentId,
-      table.semesterId,
+      t.studentId,
+      t.semesterId,
     ),
   }),
 );
-
-// ─── Audit Logs ───────────────────────────────────────────────────────────────
 
 export const auditLogs = pgTable(
   "audit_logs",
@@ -241,14 +194,11 @@ export const auditLogs = pgTable(
     userAgent: text("user_agent"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => ({
-    // B-tree index for date-range queries on the audit page
-    createdAtIdx: index("audit_logs_created_at_idx").on(table.createdAt),
-    adminIdx: index("audit_logs_admin_idx").on(table.adminId),
+  (t) => ({
+    createdAtIdx: index("audit_logs_created_at_idx").on(t.createdAt),
+    adminIdx: index("audit_logs_admin_idx").on(t.adminId),
   }),
 );
-
-// ─── Registrar ────────────────────────────────────────────────────────────────
 
 export const registrar = pgTable("registrar", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -258,8 +208,6 @@ export const registrar = pgTable("registrar", {
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
-
-// ─── Transcripts ──────────────────────────────────────────────────────────────
 
 export const transcripts = pgTable(
   "transcripts",
@@ -272,24 +220,21 @@ export const transcripts = pgTable(
     generatedBy: uuid("generated_by")
       .references(() => admins.id)
       .notNull(),
-
-    // PDF storage
-    fileKey: text("file_key"), // S3 object key or local .transcripts/ path
-    checksum: varchar("checksum", { length: 64 }), // SHA-256 hex of the data payload
+    fileKey: text("file_key"),
+    checksum: varchar("checksum", { length: 64 }),
     status: transcriptStatusEnum("status").default("COMPLETED"),
     registrarId: uuid("registrar_id").references(() => registrar.id),
-
+    errorMessage: text("error_message"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => ({
+  (t) => ({
     transcriptUnique: uniqueIndex("transcript_number_unique").on(
-      table.transcriptNumber,
+      t.transcriptNumber,
     ),
-    studentIdx: index("transcripts_student_idx").on(table.studentId),
+    studentIdx: index("transcripts_student_idx").on(t.studentId),
+    createdAtIdx: index("transcripts_created_at_idx").on(t.createdAt),
   }),
 );
-
-// ─── Bulk upload jobs ─────────────────────────────────────────────────────────
 
 export const uploadJobs = pgTable("upload_jobs", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -297,7 +242,7 @@ export const uploadJobs = pgTable("upload_jobs", {
     .references(() => admins.id)
     .notNull(),
   fileKey: text("file_key").notNull(),
-  jobType: varchar("job_type", { length: 50 }).notNull(), // "STUDENTS" | "GRADES"
+  jobType: varchar("job_type", { length: 50 }).notNull(),
   status: uploadJobStatusEnum("status").default("PENDING").notNull(),
   totalRows: integer("total_rows"),
   processedRows: integer("processed_rows").default(0),
@@ -319,22 +264,15 @@ export const uploadJobRows = pgTable(
     errorMessage: text("error_message"),
     isValid: boolean("is_valid").default(false).notNull(),
   },
-  (table) => ({
-    jobIdx: index("upload_job_rows_job_idx").on(table.jobId),
-  }),
+  (t) => ({ jobIdx: index("upload_job_rows_job_idx").on(t.jobId) }),
 );
 
 export const rateLimitAttempts = pgTable(
   "rate_limit_attempts",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    ipAddress: varchar("ip_address", { length: 100 }).notNull(),
-    endpoint: varchar("endpoint", { length: 255 }).notNull(),
-    method: varchar("method", { length: 10 }).notNull(),
     key: varchar("key", { length: 255 }).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => ({
-    keyIdx: index("rate_limit_attempts_key_idx").on(table.key),
-  }),
+  (t) => ({ keyIdx: index("rate_limit_key_idx").on(t.key, t.createdAt) }),
 );

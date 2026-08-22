@@ -13,11 +13,13 @@ import {
 } from "@/components/ui";
 
 type Student = {
-  id: string; indexNumber: string; firstName: string; middleName?: string | null; lastName: string;
+  id: string; indexNumber: string; firstName: string; lastName: string;
   level: number; entryYear: number; graduationYear?: number | null;
   status: string; programmeId: string; programmeName: string;
   dateOfBirth?: string | null; gender?: string | null;
   email?: string | null; phoneNumber?: string | null;
+  middleName?: string | null;
+  studentType?: string | null;
 };
 
 const IDLE = { status: "idle" } as const;
@@ -167,6 +169,12 @@ export function StudentsClient({
           <Field label="Middle name" hint="Optional">
             <Input name="middleName" placeholder="Kweku" />
           </Field>
+          <Field label="Student type" required>
+            <Select name="studentType">
+              <option value="UNDERGRADUATE">Undergraduate</option>
+              <option value="POSTGRADUATE">Postgraduate</option>
+            </Select>
+          </Field>
           <Field label="Date of birth">
             <Input name="dateOfBirth" type="date" />
           </Field>
@@ -229,6 +237,12 @@ export function StudentsClient({
             </Field>
             <Field label="Middle name">
               <Input name="middleName" defaultValue={editing.middleName ?? ""} />
+            </Field>
+            <Field label="Student type" required>
+              <Select name="studentType" defaultValue={editing.studentType ?? "UNDERGRADUATE"}>
+                <option value="UNDERGRADUATE">Undergraduate</option>
+                <option value="POSTGRADUATE">Postgraduate</option>
+              </Select>
             </Field>
             <Field label="Date of birth">
               <Input name="dateOfBirth" type="date" defaultValue={editing.dateOfBirth ?? ""} />
@@ -317,6 +331,7 @@ function StudentCard({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Badge variant={student.studentType === "POSTGRADUATE" ? "purple" : "blue"}>{student.studentType === "POSTGRADUATE" ? "Postgrad" : "Undergrad"}</Badge>
           <Badge variant={STATUS_BADGE[student.status] ?? "gray"}>{student.status}</Badge>
           <Button size="sm" variant="secondary" onClick={onEdit}>Edit</Button>
           <Button size="sm" variant="ghost"
