@@ -43,8 +43,6 @@ export async function loginAction(
         email: ["Email is required"],
         password: ["Password is required"],
       },
-      remaining: 0,
-      retryAfterSeconds: 0,
     };
   }
 
@@ -55,19 +53,14 @@ export async function loginAction(
     "unknown";
 
   // ── Rate limit: 5 attempts per 15 minutes per IP ──────────────────────────
-  const limit = await rateLimit(loginRateLimitKey(ip), ip, "/login", "POST", {
+  const limit = await rateLimit(loginRateLimitKey(ip), {
     max: 5,
-    windowMs: 15 * 60 * 1000,
-    ipAddress: ip,
-    endpoint: "/login",
-    method: "POST",
+    windowMs: 15 * 60 * 1000, // 15 minutes
   });
   if (!limit.allowed) {
     return {
-      status: "rate_limit_exceeded",
+      status: "error",
       error: `Too many login attempts. Please wait ${limit.retryAfterSeconds} seconds before trying again.`,
-      remaining: limit.remaining,
-      retryAfterSeconds: limit.retryAfterSeconds,
     };
   }
 
@@ -91,15 +84,11 @@ export async function loginAction(
         status: "error",
         error:
           "Cannot connect to the database. Check that PostgreSQL is running and DATABASE_URL is correct.",
-        remaining: 0,
-        retryAfterSeconds: 0,
       };
     }
     return {
       status: "error",
       error: "A database error occurred. Please try again.",
-      remaining: 0,
-      retryAfterSeconds: 0,
     };
   }
 
@@ -111,8 +100,6 @@ export async function loginAction(
     return {
       status: "error",
       error: "Invalid email or password.",
-      remaining: 0,
-      retryAfterSeconds: 0,
     };
   }
 
@@ -120,8 +107,6 @@ export async function loginAction(
     return {
       status: "error",
       error: "This account has been disabled. Contact a system administrator.",
-      remaining: 0,
-      retryAfterSeconds: 0,
     };
   }
 
@@ -192,8 +177,6 @@ export async function changePasswordAction(
     return {
       status: "error",
       error: "Not authenticated.",
-      remaining: 0,
-      retryAfterSeconds: 0,
     };
 
   const parsed = changePasswordSchema.safeParse({
@@ -207,8 +190,6 @@ export async function changePasswordAction(
       status: "error",
       error: parsed.error.issues[0].message,
       fieldErrors: parsed.error.flatten().fieldErrors,
-      remaining: 0,
-      retryAfterSeconds: 0,
     };
   }
 
@@ -225,8 +206,6 @@ export async function changePasswordAction(
     return {
       status: "error",
       error: "Account not found.",
-      remaining: 0,
-      retryAfterSeconds: 0,
     };
 
   const valid = await comparePassword(currentPassword, admin.password);
@@ -234,8 +213,6 @@ export async function changePasswordAction(
     return {
       status: "error",
       error: "Current password is incorrect.",
-      remaining: 0,
-      retryAfterSeconds: 0,
     };
 
   const hashed = await hashPassword(newPassword);
