@@ -42,6 +42,23 @@ export type TranscriptPreviewProps = {
   latestRecordId: string | null;
 };
 
+// Shared inline style for a "label: value" line, previously rendered by
+// the removed <InfoLine /> component. Kept here so every usage site stays
+// visually identical without going through a separate component.
+const infoLineRowStyle: React.CSSProperties = {
+  display: "flex",
+  gap: "4px",
+  fontSize: "11px",
+  lineHeight: 1.6,
+  alignItems: "baseline",
+};
+
+const infoLineLabelStyle: React.CSSProperties = {
+  fontWeight: 700,
+  minWidth: "45px",
+  flexShrink: 0,
+};
+
 export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
   const {
     student,
@@ -73,6 +90,15 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
     student.firstName,
     student.middleName,
   );
+
+  const fullName = [
+    student.lastName + ", ",
+    student.firstName,
+    " ",
+    student.middleName,
+  ]
+    .filter((x): x is string => typeof x === "string" && x.trim() !== "" && x !== "undefined")
+    .join(" ");
 
   const base: React.CSSProperties = {
     fontFamily: "Arial, Helvetica, sans-serif",
@@ -112,7 +138,6 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
             }}
             aria-hidden
           >
-            <LogoCrest size={320} opacity={0.06} />
           </div>
 
           <table
@@ -202,43 +227,51 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                   {/* Student information */}
                   <div
                     style={{
-                      display: "flex",
-                      // gap: "2px 24px",
                       fontSize: "11px",
                       marginBottom: "6px",
-                      alignItems: "start",
+                      width: "100%",
                     }}
                   >
-                    <div>
-                      <InfoLine
-                        label="Student Number"
-                        value={student.indexNumber}
-                      />
-                      <InfoLine
-                        label="Date Of Birth"
-                        value={formatTranscriptDateOfBirth(student.dateOfBirth)}
-                      />
-                      <InfoLine
-                        label="Programme"
-                        value={student.programme.name}
-                      />
-                    </div>
-                    <div className="-ml-24">
-                      <InfoLine label="Name" value={[student.lastName, ", ", student.firstName, " ", student.middleName].filter((x): x is string => typeof x === "string" && x.trim() !== "" && x !== "undefined").join(" ")} />
-                      <InfoLine
-                        label="Period"
-                        value={formatStudyPeriod(
-                          String(student.entryYear),
-                          String(student.graduationYear),
-                        )}
-                      />
-                      <div className="flex -mt-4 ml-64">
-                        {student.gender && (
-                          <InfoLine label="Gender" value={student.gender} />
-                        )}
+                    {/* Row 1: Student Number + Name (single line, never wraps) */}
+                    <div style={{ display: "flex", width: "100%" }}>
+                      <div style={{ ...infoLineRowStyle, flex: "0 0 35%", paddingRight: "10px", boxSizing: "border-box" }}>
+                        <span style={infoLineLabelStyle}>Student Number:</span>
+                        <span>{student.indexNumber}</span>
+                      </div>
+                      <div style={{ ...infoLineRowStyle, flex: "1 1 auto", minWidth: 0, whiteSpace: "nowrap" }}>
+                        <span style={infoLineLabelStyle}>Name:</span>
+                        <span style={{ whiteSpace: "nowrap" }}>{fullName}</span>
                       </div>
                     </div>
 
+                    {/* Row 2: Date Of Birth + Period + Gender (single line, never wraps) */}
+                    <div style={{ display: "flex", width: "100%", marginTop: "2px" }}>
+                      <div style={{ ...infoLineRowStyle, flex: "0 0 35%", paddingRight: "10px", boxSizing: "border-box", whiteSpace: "nowrap" }}>
+                        <span style={infoLineLabelStyle}>Date Of Birth:</span>
+                        <span>{formatTranscriptDateOfBirth(student.dateOfBirth)}</span>
+                      </div>
+                      <div style={{ ...infoLineRowStyle, flex: "0 0 35%", paddingRight: "10px", boxSizing: "border-box", whiteSpace: "nowrap" }}>
+                        <span style={infoLineLabelStyle}>Period:</span>
+                        <span>
+                          {formatStudyPeriod(
+                            String(student.entryYear),
+                            String(student.graduationYear)
+                          )}
+                        </span>
+                      </div>
+                      {student.gender && (
+                        <div style={{ ...infoLineRowStyle, flex: "1 1 auto", whiteSpace: "nowrap" }}>
+                          <span style={infoLineLabelStyle}>Gender:</span>
+                          <span>{student.gender}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Row 3: Programme (single line, never wraps) */}
+                    <div style={{ ...infoLineRowStyle, width: "100%", marginTop: "4px", whiteSpace: "nowrap" }}>
+                      <span style={infoLineLabelStyle}>Programme:</span>
+                      <span style={{ whiteSpace: "nowrap" }}>{student.programme.name}</span>
+                    </div>
                   </div>
 
                   {/* Warning bar */}
@@ -290,7 +323,7 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                       ))}
 
                       {/* ─── Signature block – only on the last page ─── */}
-                      <div className="w-full" style={{ marginTop: "50px" }}>
+                      <div className="w-full" style={{ marginTop: "80px" }}>
                         <div
                           style={{
                             display: "flex",
@@ -497,10 +530,13 @@ function SemesterBlock({
               fontWeight: 400,
             }}
           >
-            <span>
-              Class Designation:{" "}
-              <span style={{ fontWeight: 700 }}>{classification}</span>
-            </span>
+            {classification !== null && (
+              <span>
+                Class Designation:{" "}
+                <span style={{ fontWeight: 700 }}>{classification}</span>
+              </span>
+            )}
+
           </div>
         )}
       </div>
@@ -537,67 +573,6 @@ function CourseRow({ course }: { course: TranscriptCourse }) {
   );
 }
 
-// ─── InfoLine ─────────────────────────────────────────────────────────────────
-
-function InfoLine({ label, value }: { label: string; value: string }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        gap: "4px",
-        fontSize: "11px",
-        lineHeight: 1.6,
-        alignItems: "baseline",
-      }}
-    >
-      <span style={{ fontWeight: 700, minWidth: "45px", flexShrink: 0 }}>
-        {label}:
-      </span>
-      <span>{value}</span>
-    </div>
-  );
-}
-
-// ─── LogoCrest (watermark) ───────────────────────────────────────────────────
-
-function LogoCrest({ size = 80, opacity = 1 }: { size?: number; opacity?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 100 100"
-      style={{ flexShrink: 0, opacity }}
-      aria-hidden
-    >
-      <circle cx="50" cy="50" r="48" fill="#1a237e" />
-      <circle cx="50" cy="50" r="44" fill="none" stroke="white" strokeWidth="0.8" />
-      <circle cx="50" cy="50" r="36" fill="none" stroke="white" strokeWidth="0.5" />
-      <circle cx="50" cy="50" r="27" fill="white" fillOpacity="0.12" />
-      <text
-        x="50"
-        y="44"
-        textAnchor="middle"
-        fontSize="21"
-        fontWeight="700"
-        fill="white"
-        fontFamily="Arial"
-      >
-        88
-      </text>
-      <text
-        x="50"
-        y="57"
-        textAnchor="middle"
-        fontSize="5.5"
-        fill="white"
-        fontFamily="Arial"
-      >
-        EDUCATION FOR SERVICE
-      </text>
-    </svg>
-  );
-}
-
 // ─── Print Styles ─────────────────────────────────────────────────────────────
 
 function PrintStyles() {
@@ -610,7 +585,6 @@ function PrintStyles() {
               size: A4 portrait;
               margin: 4mm 4mm;
               @bottom-center {
-              content: "Page " counter(page);
               font-size: 8px;
               color: #000;
               font-family: Arial, Helvetica, sans-serif;
