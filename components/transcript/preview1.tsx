@@ -435,7 +435,7 @@ function SemesterBlock({
     collapsed: boolean;
     onToggle: () => void;
     showClassDesignation: boolean;
-    classification: string;
+    classification: string | null;
 }) {
     return (
         <div style={{ marginBottom: "6px", pageBreakInside: "avoid" }}>

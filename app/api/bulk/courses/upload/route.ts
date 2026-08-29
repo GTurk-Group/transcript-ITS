@@ -91,6 +91,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   // ── Validate rows ─────────────────────────────────────────────────────────
   type ValidRow = {
+    row: number;
     code: string;
     title: string;
     creditHours: number;
@@ -126,7 +127,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           message: `Duplicate code "${parsed.data.code}" in this file.`,
         });
       } else {
-        valid.push(parsed.data);
+        valid.push({ row: rowNum, ...parsed.data });
       }
     }
   }
@@ -141,7 +142,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const toInsert: ValidRow[] = [];
   for (const row of valid) {
     if (existingCodes.has(row.code.toLowerCase())) {
-      failures.push({ row: 0, message: `Code "${row.code}" already exists.` });
+      failures.push({
+        row: row.row,
+        message: `Code "${row.code}" already exists.`,
+      });
     } else {
       toInsert.push(row);
     }
@@ -177,7 +181,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           inserted++;
         } catch (e) {
           failures.push({
-            row: 0,
+            row: row.row,
             message: `"${row.code}" — ${e instanceof Error ? e.message : "Insert failed"}`,
           });
         }

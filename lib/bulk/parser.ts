@@ -182,8 +182,26 @@ export function parseStudentCSV(
     };
   }
 
-  const headerRow = allRows[0];
-  const dataRows = allRows.slice(1);
+  const headerRowIndex = allRows.findIndex(
+    (row) =>
+      row.some((field) => field.trim() !== "") &&
+      !row[0]?.trimStart().startsWith("#"),
+  );
+
+  if (headerRowIndex === -1) {
+    return {
+      rows: [],
+      unknownHeaders: [],
+      missingHeaders: [...required] as StudentCSVColumn[],
+      totalDataRows: 0,
+    };
+  }
+
+  const headerRow = allRows[headerRowIndex];
+  const dataRows = allRows
+    .slice(headerRowIndex + 1)
+    .map((row, index) => ({ row, rowNumber: headerRowIndex + index + 2 }))
+    .filter(({ row }) => row.some((field) => field.trim() !== ""));
 
   // Map column indices to canonical column names
   const indexToColumn = new Map<number, StudentCSVColumn>();
@@ -206,9 +224,7 @@ export function parseStudentCSV(
   ) as StudentCSVColumn[];
 
   // Convert data rows
-  const rows: RawStudentRow[] = dataRows
-    .filter((row) => row.some((f) => f.trim() !== "")) // skip blank rows
-    .map((row, idx) => {
+  const rows: RawStudentRow[] = dataRows.map(({ row, rowNumber }) => {
       const mapped: Partial<Record<StudentCSVColumn, string>> = {};
 
       indexToColumn.forEach((col, colIdx) => {
@@ -216,7 +232,7 @@ export function parseStudentCSV(
       });
 
       return {
-        rowNumber: idx + 2, // +1 for header, +1 for 1-based indexing
+        rowNumber,
         rawLine: row.join(","),
         indexNumber: mapped.indexNumber,
         firstName: mapped.firstName,
@@ -236,8 +252,7 @@ export function parseStudentCSV(
     rows,
     unknownHeaders,
     missingHeaders,
-    totalDataRows: dataRows.filter((r) => r.some((f) => f.trim() !== ""))
-      .length,
+    totalDataRows: dataRows.length,
   };
 }
 
@@ -279,7 +294,7 @@ export function generateStudentCSVTemplate(): string {
   const notes = [
     "# STUDENT BULK UPLOAD TEMPLATE",
     "# Instructions:",
-    "# - Delete these comment rows before uploading",
+    "# - Comment rows before the header are ignored during upload",
     "# - graduationYear is optional — leave blank for current students",
     "# - level must be one of: 100 200 300 400 500 600 700 800",
     "# - programmeCode must match an existing programme in the system",

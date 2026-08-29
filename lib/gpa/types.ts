@@ -56,7 +56,7 @@ export type CGPAResult = {
   cgpa: number;
   /** Human-readable CGPA: always 2 decimal places */
   cgpaFormatted: string;
-  classification: GradeClassification;
+  classification: GradeClassification | null;
   /** Per-semester breakdown, ordered chronologically (oldest first) */
   semesters: SemesterGPAResult[];
 };

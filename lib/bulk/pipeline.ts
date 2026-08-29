@@ -12,7 +12,7 @@
 
 import { db } from "@/db";
 import { students } from "@/db/schema";
-import { parseDbError } from "@/actions/utils";
+import { dbErrorMessage, parseDbError } from "@/actions/utils";
 import type {
   ValidStudentRow,
   RowFailure as StudentRowFailure,
@@ -79,8 +79,11 @@ async function insertBatchRowByRow(
       });
       succeeded++;
     } catch (err) {
-      const dbError = parseDbError(err) as { message?: string };
-      const message = dbError?.message ?? String(err);
+      const message = dbErrorMessage(
+        parseDbError(err),
+        "students",
+        "This student could not be imported.",
+      );
       failures.push({
         rowNumber: row.rowNumber,
         status: "error",
@@ -89,7 +92,7 @@ async function insertBatchRowByRow(
           firstName: row.firstName,
           lastName: row.lastName,
         },
-        errors: [],
+        errors: [message],
       });
     }
   }
@@ -104,17 +107,8 @@ export async function runStudentBulkInsertPipeline(
   failedRows: StudentRowFailure[],
   totalDataRows: number,
 ): Promise<StudentBulkResult> {
-  if (validRows.length === 0) {
-    return {
-      totalRows: 0,
-      successCount: 0,
-      failureCount: 0,
-      failures: [],
-      durationMs: 0,
-    };
-  }
-
-  const allFailures: StudentRowFailure[] = [];
+  const startedAt = Date.now();
+  const allFailures: StudentRowFailure[] = [...failedRows];
   let totalSucceeded = 0;
 
   // Split into batches
@@ -126,10 +120,10 @@ export async function runStudentBulkInsertPipeline(
   }
 
   return {
-    totalRows: validRows.length,
+    totalRows: totalDataRows,
     successCount: totalSucceeded,
     failureCount: allFailures.length,
     failures: allFailures,
-    durationMs: 0,
+    durationMs: Date.now() - startedAt,
   };
 }

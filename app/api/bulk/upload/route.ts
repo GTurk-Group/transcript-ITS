@@ -116,20 +116,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // ── 5. Strip comment rows (lines beginning with #) ─────────────────────────
-
-  const stripped = text
-    .split("\n")
-    .filter((line) => !line.trimStart().startsWith("#"))
-    .join("\n");
-
-  // ── 6. Parse CSV ───────────────────────────────────────────────────────────
+  // ── 5. Parse CSV ───────────────────────────────────────────────────────────
 
   const {
     rows: rawRows,
     missingHeaders,
     totalDataRows,
-  } = parseStudentCSV(stripped);
+  } = parseStudentCSV(text);
 
   if (missingHeaders.length > 0) {
     return NextResponse.json(
@@ -161,7 +154,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // ── 7. Audit: upload started ───────────────────────────────────────────────
+  // ── 6. Audit: upload started ───────────────────────────────────────────────
 
   const meta = extractRequestMeta(request.headers);
 
@@ -177,11 +170,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     ...meta,
   });
 
-  // ── 8. Validate all rows ───────────────────────────────────────────────────
+  // ── 7. Validate all rows ───────────────────────────────────────────────────
 
   const { validRows, failedRows } = await validateBatch(rawRows);
 
-  // ── 9. Insert valid rows (row-level error recovery) ────────────────────────
+  // ── 8. Insert valid rows (row-level error recovery) ────────────────────────
 
   const result: BulkUploadResult = await runStudentBulkInsertPipeline(
     validRows,
@@ -189,7 +182,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     totalDataRows,
   );
 
-  // ── 10. Audit: upload completed ────────────────────────────────────────────
+  // ── 9. Audit: upload completed ─────────────────────────────────────────────
 
   await logAuditEvent({
     adminId: session.adminId,
@@ -205,7 +198,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     ...meta,
   });
 
-  // ── 11. Return result ──────────────────────────────────────────────────────
+  // ── 10. Return result ──────────────────────────────────────────────────────
 
   return NextResponse.json(result, { status: 200 });
 }

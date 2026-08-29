@@ -103,7 +103,7 @@ export type TranscriptSummary = {
   totalQualityPoints: number;
   cgpa: number;
   cgpaFormatted: string; // "3.42"
-  classification: GradeClassification;
+  classification: GradeClassification | null;
 };
 
 // ─── Entity shapes ────────────────────────────────────────────────────────────

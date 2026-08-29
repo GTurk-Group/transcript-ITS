@@ -166,7 +166,7 @@ export function generateGradeCSVTemplate(): string {
   const notes = [
     "# GRADE BULK UPLOAD TEMPLATE",
     "# Instructions:",
-    "# - Delete these comment rows before uploading",
+    "# - Comment rows before the header are ignored during upload",
     "# - indexNumber must match an existing student",
     "# - courseCode must match an existing active course",
     "# - semester must be FIRST or SECOND",
@@ -207,8 +207,26 @@ export function parseGradeCSV(text: string): GradeParseResult {
     };
   }
 
-  const headerRow = allRows[0];
-  const dataRows = allRows.slice(1);
+  const headerRowIndex = allRows.findIndex(
+    (row) =>
+      row.some((field) => field.trim() !== "") &&
+      !row[0]?.trimStart().startsWith("#"),
+  );
+
+  if (headerRowIndex === -1) {
+    return {
+      rows: [],
+      missingHeaders: [...REQUIRED_COLUMNS],
+      unknownHeaders: [],
+      totalDataRows: 0,
+    };
+  }
+
+  const headerRow = allRows[headerRowIndex];
+  const dataRows = allRows
+    .slice(headerRowIndex + 1)
+    .map((row, index) => ({ row, rowNumber: headerRowIndex + index + 2 }))
+    .filter(({ row }) => row.some((field) => field.trim() !== ""));
 
   // Map column index → canonical column name
   const indexToColumn = new Map<number, GradeCSVColumn>();
@@ -224,16 +242,14 @@ export function parseGradeCSV(text: string): GradeParseResult {
   const foundColumns = new Set(indexToColumn.values());
   const missingHeaders = REQUIRED_COLUMNS.filter((c) => !foundColumns.has(c));
 
-  const nonEmptyData = dataRows.filter((r) => r.some((f) => f.trim() !== ""));
-
-  const rows: RawGradeRow[] = nonEmptyData.map((row, idx) => {
+  const rows: RawGradeRow[] = dataRows.map(({ row, rowNumber }) => {
     const mapped: Partial<Record<GradeCSVColumn, string>> = {};
     indexToColumn.forEach((col, colIdx) => {
       mapped[col] = row[colIdx] ?? "";
     });
 
     return {
-      rowNumber: idx + 2, // +1 header, +1 for 1-based
+      rowNumber,
       rawLine: row.join(","),
       indexNumber: mapped.indexNumber,
       courseCode: mapped.courseCode,
@@ -247,6 +263,6 @@ export function parseGradeCSV(text: string): GradeParseResult {
     rows,
     missingHeaders,
     unknownHeaders,
-    totalDataRows: nonEmptyData.length,
+    totalDataRows: dataRows.length,
   };
 }

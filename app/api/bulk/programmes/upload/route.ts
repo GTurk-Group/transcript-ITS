@@ -21,7 +21,10 @@ const MAX_ROWS = 2_000;
 const rowSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
   code: z.string().min(1, "Code is required").max(50),
-  programmeType: z.enum(["undergraduate", "diploma"]),
+  programmeType: z
+    .string()
+    .transform((value) => value.trim().toUpperCase())
+    .pipe(z.enum(["DEGREE", "DIPLOMA"])),
 });
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -82,9 +85,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   // ── Validate rows ─────────────────────────────────────────────────────────
   type ValidRow = {
+    row: number;
     name: string;
     code: string;
-    programmeType: "undergraduate" | "diploma";
+    programmeType: "DEGREE" | "DIPLOMA";
   };
   type FailedRow = { row: number; message: string };
 
@@ -99,7 +103,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const parsed = rowSchema.safeParse({
       name: cols[nameIdx],
       code: cols[codeIdx],
-      programmeType: cols[programmeTypeIdx],
+      programmeType:
+        programmeTypeIdx >= 0 ? cols[programmeTypeIdx] || "DEGREE" : "DEGREE",
     });
     if (!parsed.success) {
       failures.push({ row: rowNum, message: parsed.error.issues[0].message });
@@ -114,7 +119,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           message: `Duplicate code "${parsed.data.code}" in this file.`,
         });
       } else {
-        valid.push(parsed.data);
+        valid.push({ row: rowNum, ...parsed.data });
       }
     }
   }
@@ -130,12 +135,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   for (const row of valid) {
     if (existingCodes.has(row.code.toLowerCase())) {
       failures.push({
-        row: 0,
+        row: row.row,
         message: `Code "${row.code}" already exists in the database.`,
       });
     } else if (existingNames.has(row.name.toLowerCase())) {
       failures.push({
-        row: 0,
+        row: row.row,
         message: `Name "${row.name}" already exists in the database.`,
       });
     } else {
@@ -172,7 +177,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           inserted++;
         } catch (e) {
           failures.push({
-            row: 0,
+            row: row.row,
             message: `"${row.code}" — ${e instanceof Error ? e.message : "Insert failed"}`,
           });
         }
