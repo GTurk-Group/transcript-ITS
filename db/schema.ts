@@ -30,7 +30,8 @@ export const gradeEnum = pgEnum("grade", [
   "C",
   "D+",
   "D",
-  "F",
+  "E",
+  "IC",
 ]);
 export const transcriptStatusEnum = pgEnum("transcript_status", [
   "PENDING",

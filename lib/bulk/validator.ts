@@ -39,6 +39,13 @@ const rowSchema = z.object({
     .max(100, "First name must be at most 100 characters")
     .trim(),
 
+  middleName: z
+    .string()
+    .min(1, "Middle name must be at least 1 character")
+    .max(100, "Middle name must be at most 100 characters")
+    .optional()
+    .transform((v) => (v === undefined || v.trim() === "" ? null : v.trim())),
+
   lastName: z
     .string({ required_error: "Last name is required" })
     .min(1, "Last name is required")
@@ -186,6 +193,7 @@ export function validateRow(
   const parsed = rowSchema.safeParse({
     indexNumber: raw.indexNumber,
     firstName: raw.firstName,
+    middleName: raw.middleName,
     lastName: raw.lastName,
     dateOfBirth: raw.dateOfBirth,
     gender: raw.gender,
@@ -244,9 +252,10 @@ export function validateRow(
       rowNumber: raw.rowNumber,
       indexNumber: data.indexNumber,
       firstName: data.firstName,
+      middleName: data.middleName ?? null,
       lastName: data.lastName,
-      dateOfBirth: data.dateOfBirth ?? "",
-      gender: data.gender ?? "",
+      dateOfBirth: data.dateOfBirth ?? null,
+      gender: data.gender ?? null,
       programmeId: programmeId!,
       programmeCode: data.programmeCode,
       level: data.level,

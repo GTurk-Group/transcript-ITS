@@ -225,7 +225,7 @@ export async function assembleTranscript(
       if (Number.isFinite(extraQP) && extraCH > 0) {
         totalQualityPoints += extraQP; // double quality points
         creditsAttempted += extraCH; // double credits attempted
-        if (rc.grade !== "F") creditsEarned += extraCH; // double credits earned (pass only)
+        if (rc.grade !== "E") creditsEarned += extraCH; // double credits earned (pass only)
       }
     }
     // Recompute SGPA after resit adjustment

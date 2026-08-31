@@ -127,6 +127,8 @@ const HEADER_MAP: Record<string, StudentCSVColumn> = {
   studentid: "indexNumber",
   firstname: "firstName",
   first: "firstName",
+  middlename: "middleName",
+  middle: "middleName",
   lastname: "lastName",
   last: "lastName",
   surname: "lastName",
@@ -225,28 +227,29 @@ export function parseStudentCSV(
 
   // Convert data rows
   const rows: RawStudentRow[] = dataRows.map(({ row, rowNumber }) => {
-      const mapped: Partial<Record<StudentCSVColumn, string>> = {};
+    const mapped: Partial<Record<StudentCSVColumn, string>> = {};
 
-      indexToColumn.forEach((col, colIdx) => {
-        mapped[col] = row[colIdx] ?? "";
-      });
-
-      return {
-        rowNumber,
-        rawLine: row.join(","),
-        indexNumber: mapped.indexNumber,
-        firstName: mapped.firstName,
-        lastName: mapped.lastName,
-        dateOfBirth: mapped.dateOfBirth,
-        gender: mapped.gender,
-        email: mapped.email,
-        phoneNumber: mapped.phoneNumber,
-        programmeCode: mapped.programmeCode,
-        level: mapped.level,
-        entryYear: mapped.entryYear,
-        graduationYear: mapped.graduationYear,
-      } satisfies RawStudentRow;
+    indexToColumn.forEach((col, colIdx) => {
+      mapped[col] = row[colIdx] ?? "";
     });
+
+    return {
+      rowNumber,
+      rawLine: row.join(","),
+      indexNumber: mapped.indexNumber,
+      firstName: mapped.firstName,
+      middleName: mapped.middleName,
+      lastName: mapped.lastName,
+      dateOfBirth: mapped.dateOfBirth,
+      gender: mapped.gender,
+      email: mapped.email,
+      phoneNumber: mapped.phoneNumber,
+      programmeCode: mapped.programmeCode,
+      level: mapped.level,
+      entryYear: mapped.entryYear,
+      graduationYear: mapped.graduationYear,
+    } satisfies RawStudentRow;
+  });
 
   return {
     rows,

@@ -501,22 +501,25 @@ function SemesterBlock({
                     </tbody>
                     <tfoot>
                         <tr>
-                            <td
-                                colSpan={5}
-                                style={{
-                                    ...tdTotals,
-                                    fontSize: "10px",
-                                    fontWeight: 700,
-                                    textAlign: "left",
-                                    padding: "4px 8px",
-                                }}
-                            >
-                                TCR: {sem.creditsAttempted.toFixed(2)} &nbsp; TGP:{" "}
-                                {sem.totalQualityPoints.toFixed(2)} &nbsp; SGPA:{" "}
-                                {sem.sgpaFormatted} &nbsp; CCR:{" "}
-                                {sem.cumulativeCreditsAttempted.toFixed(2)} &nbsp; CGV:{" "}
-                                {sem.cumulativeQualityPoints.toFixed(2)} &nbsp; CGPA:{" "}
-                                {sem.cumulativeGpaFormatted}
+                            <td colSpan={5} style={{ ...tdTotals, padding: "4px 8px" }}>
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        flexWrap: "wrap",
+                                        gap: "12px 50px", // horizontal and vertical spacing
+                                        fontSize: "10px",
+                                        fontWeight: 700,
+                                        justifyContent: "center",
+                                        alignItems: "center",
+                                    }}
+                                >
+                                    <span>TCR: {sem.creditsAttempted.toFixed(2)}</span>
+                                    <span>TGP: {sem.totalQualityPoints.toFixed(2)}</span>
+                                    <span>SGPA: {sem.sgpaFormatted}</span>
+                                    <span>CCR: {sem.cumulativeCreditsAttempted.toFixed(2)}</span>
+                                    <span>CGV: {sem.cumulativeQualityPoints.toFixed(2)}</span>
+                                    <span>CGPA: {sem.cumulativeGpaFormatted}</span>
+                                </div>
                             </td>
                         </tr>
                     </tfoot>

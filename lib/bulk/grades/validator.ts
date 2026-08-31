@@ -31,7 +31,7 @@
  */
 
 import { z } from "zod";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { students, courses, semesters, grades } from "@/db/schema";
 import {

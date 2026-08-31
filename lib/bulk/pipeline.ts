@@ -1,71 +1,49 @@
-/**
- * Student bulk insert pipeline — batched for performance.
- *
- * Valid rows are inserted in batches of 100 using a single INSERT statement.
- * Only batches that fail due to constraint violations fall back to per-row
- * recovery to identify which specific rows caused the failure.
- *
- * Performance comparison:
- *   Sequential (old): 5,000 rows × ~2ms each = ~10 seconds
- *   Batched   (new):  50 batches × ~10ms each = ~500ms
- */
+// pipeline.ts – updated version
 
 import { db } from "@/db";
 import { students } from "@/db/schema";
 import { dbErrorMessage, parseDbError } from "@/actions/utils";
-import type {
-  ValidStudentRow,
-  RowFailure as StudentRowFailure,
-  BulkUploadResult as StudentBulkResult,
-} from "./types";
+import type { ValidStudentRow, RowFailure, BulkUploadResult } from "./types";
 
 const BATCH_SIZE = 100;
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type BatchResult = {
-  succeeded: number;
-  failures: StudentRowFailure[];
-};
-
-// ─── Batch insert ─────────────────────────────────────────────────────────────
-
-async function insertBatch(batch: ValidStudentRow[]): Promise<BatchResult> {
+async function insertBatch(batch: ValidStudentRow[]): Promise<RowFailure[]> {
   try {
     await db.insert(students).values(
       batch.map((row) => ({
         indexNumber: row.indexNumber,
         firstName: row.firstName,
+        middleName: row.middleName,
         lastName: row.lastName,
-        dateOfBirth: row.dateOfBirth,
-        gender: row.gender,
+        dateOfBirth: row.dateOfBirth, // may be null
+        gender: row.gender, // may be null
         programmeId: row.programmeId,
         level: row.level,
         entryYear: row.entryYear,
         graduationYear: row.graduationYear ?? null,
-        email: row.email,
-        phoneNumber: row.phoneNumber,
+        email: row.email ?? null,
+        phoneNumber: row.phoneNumber ?? null,
         status: "ACTIVE" as const,
       })),
     );
-    return { succeeded: batch.length, failures: [] };
+    return []; // no failures
   } catch {
-    // Batch failed — fall back to per-row inserts to identify the bad rows
+    // Batch failed – fall back to row-by-row to identify problematic rows
     return insertBatchRowByRow(batch);
   }
 }
 
 async function insertBatchRowByRow(
   batch: ValidStudentRow[],
-): Promise<BatchResult> {
-  let succeeded = 0;
-  const failures: StudentRowFailure[] = [];
+): Promise<RowFailure[]> {
+  const failures: RowFailure[] = [];
 
   for (const row of batch) {
     try {
       await db.insert(students).values({
         indexNumber: row.indexNumber,
         firstName: row.firstName,
+        middleName: row.middleName,
         lastName: row.lastName,
         dateOfBirth: row.dateOfBirth,
         gender: row.gender,
@@ -77,13 +55,14 @@ async function insertBatchRowByRow(
         phoneNumber: row.phoneNumber ?? null,
         status: "ACTIVE" as const,
       });
-      succeeded++;
     } catch (err) {
-      const message = dbErrorMessage(
-        parseDbError(err),
-        "students",
-        "This student could not be imported.",
-      );
+      // console.error(`[Row ${row.rowNumber}] DB insert error:`, {
+      //   code: (err as any)?.code,
+      //   message: (err as any)?.message,
+      //   detail: (err as any)?.detail,
+      //   stack: (err as any)?.stack,
+      // });
+      const userMessage = dbErrorMessage(parseDbError(err), "student");
       failures.push({
         rowNumber: row.rowNumber,
         status: "error",
@@ -91,39 +70,51 @@ async function insertBatchRowByRow(
           indexNumber: row.indexNumber,
           firstName: row.firstName,
           lastName: row.lastName,
+          programmeCode: row.programmeCode,
+          level: String(row.level),
+          entryYear: String(row.entryYear),
+          graduationYear: row.graduationYear
+            ? String(row.graduationYear)
+            : undefined,
+          dateOfBirth: row.dateOfBirth ?? "",
+          gender: row.gender ?? "",
+          email: row.email ?? "",
+          phoneNumber: row.phoneNumber ?? "",
         },
-        errors: [message],
+        errors: [userMessage],
       });
     }
   }
 
-  return { succeeded, failures };
+  return failures;
 }
-
-// ─── Public pipeline ──────────────────────────────────────────────────────────
 
 export async function runStudentBulkInsertPipeline(
   validRows: ValidStudentRow[],
-  failedRows: StudentRowFailure[],
+  validationFailures: RowFailure[],
   totalDataRows: number,
-): Promise<StudentBulkResult> {
-  const startedAt = Date.now();
-  const allFailures: StudentRowFailure[] = [...failedRows];
-  let totalSucceeded = 0;
+): Promise<BulkUploadResult> {
+  const start = Date.now();
 
-  // Split into batches
-  for (let i = 0; i < validRows.length; i += BATCH_SIZE) {
-    const batch = validRows.slice(i, i + BATCH_SIZE);
-    const result = await insertBatch(batch);
-    totalSucceeded += result.succeeded;
-    allFailures.push(...result.failures);
+  // Start with failures from validation
+  const allFailures: RowFailure[] = [...validationFailures];
+  let successCount = 0;
+
+  if (validRows.length > 0) {
+    for (let i = 0; i < validRows.length; i += BATCH_SIZE) {
+      const batch = validRows.slice(i, i + BATCH_SIZE);
+      const batchFailures = await insertBatch(batch);
+      const succeededInBatch = batch.length - batchFailures.length;
+      successCount += succeededInBatch;
+      allFailures.push(...batchFailures);
+    }
   }
 
   return {
     totalRows: totalDataRows,
-    successCount: totalSucceeded,
+    successCount,
     failureCount: allFailures.length,
     failures: allFailures,
-    durationMs: Date.now() - startedAt,
+    durationMs: Date.now() - start,
   };
 }

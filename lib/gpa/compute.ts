@@ -171,9 +171,9 @@ export function formatSemesterLabel(
 ): string {
   const termLabel =
     term === "FIRST"
-      ? "Academic Year First Semester"
-      : "Academic Year Second Semester";
-  return `${year}/${year + 1} – ${termLabel}`;
+      ? " Academic Year First Semester"
+      : " Academic Year Second Semester";
+  return `${year}/${year + 1}  ${termLabel}`;
 }
 
 // ─── Internal ─────────────────────────────────────────────────────────────────

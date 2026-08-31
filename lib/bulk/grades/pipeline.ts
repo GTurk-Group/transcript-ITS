@@ -26,7 +26,16 @@ async function insertBatch(batch: ValidGradeRow[]): Promise<BatchResult> {
         studentId: row.studentId,
         courseId: row.courseId,
         semesterId: row.semesterId,
-        grade: row.grade as "A" | "B+" | "B" | "C+" | "C" | "D+" | "D" | "F",
+        grade: row.grade as
+          | "A"
+          | "B+"
+          | "B"
+          | "C+"
+          | "C"
+          | "D+"
+          | "D"
+          | "E"
+          | "IC",
         gradePoint: Number(row.gradePoint).toFixed(2),
         creditHours: row.creditHours,
         computedQualityPoints: Number(row.computedQualityPoints).toFixed(2),
@@ -51,7 +60,16 @@ async function insertBatchRowByRow(
         studentId: row.studentId,
         courseId: row.courseId,
         semesterId: row.semesterId,
-        grade: row.grade as "A" | "B+" | "B" | "C+" | "C" | "D+" | "D" | "F",
+        grade: row.grade as
+          | "A"
+          | "B+"
+          | "B"
+          | "C+"
+          | "C"
+          | "D+"
+          | "D"
+          | "E"
+          | "IC",
         gradePoint: Number(row.gradePoint).toFixed(2),
         creditHours: row.creditHours,
         computedQualityPoints: Number(row.computedQualityPoints).toFixed(2),
@@ -59,17 +77,19 @@ async function insertBatchRowByRow(
       });
       succeeded++;
     } catch (err) {
-      const message = dbErrorMessage(
-        parseDbError(err),
-        "grades",
-        "This grade could not be imported.",
-      );
+      // Log the full error for debugging
+      console.error(`[Grade insert row ${row.rowNumber}]`, err);
+      const parsedError = parseDbError(err);
+      const message = dbErrorMessage(parsedError, "grade");
       failures.push({
         rowNumber: row.rowNumber,
         status: "error",
         rawValues: {
           indexNumber: row.indexNumber,
           courseCode: row.courseCode,
+          semester: row.semester,
+          year: String(row.year),
+          grade: row.grade,
         },
         errors: [message],
       });

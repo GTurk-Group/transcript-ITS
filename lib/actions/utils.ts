@@ -38,47 +38,68 @@ export function parseDbError(err: unknown): ParsedDbError {
 }
 
 /**
- * Maps common Postgres error codes to user-facing messages.
+ * Maps common Postgres error codes to user-facing messages with detailed context.
  *
  * @param err        The raw error thrown by Drizzle / postgres-js
  * @param entityName Human-readable entity name for messages e.g. "student"
  */
 export function dbErrorMessage(err: unknown, entityName = "record"): string {
-  const { code, message } = parseDbError(err);
+  const { code, message, detail } = parseDbError(err);
 
-  // 23505 — unique_violation
-  if (
-    code === "23505" ||
-    message.includes("unique") ||
-    message.includes("duplicate")
-  ) {
+  // --- 23505: unique_violation ---
+  if (code === "23505") {
+    // Extract column and value from detail: e.g. 'Key (indexNumber)=(200002056) already exists.'
+    const match = detail?.match(/Key \((.*?)\)=(.*?)(?=,|$)/);
+    if (match) {
+      const column = match[1];
+      const value = match[2];
+      return `Duplicate value for "${column}": ${value}. A ${entityName} with this value already exists.`;
+    }
     return `A ${entityName} with those details already exists.`;
   }
 
-  // 23503 — foreign_key_violation
-  if (
-    code === "23503" ||
-    message.includes("foreign key") ||
-    message.includes("violates")
-  ) {
-    return `Cannot delete this ${entityName} because other records depend on it.`;
+  // --- 23503: foreign_key_violation ---
+  if (code === "23503") {
+    // Extract table/column from detail if possible
+    const match = detail?.match(/Key \((.*?)\)=/);
+    if (match) {
+      return `Invalid reference: "${match[1]}" does not exist or is inactive.`;
+    }
+    return `Cannot save this ${entityName} because a related record is missing.`;
   }
 
-  // 23502 — not_null_violation
-  if (
-    code === "23502" ||
-    message.includes("not-null") ||
-    message.includes("null value")
-  ) {
+  // --- 23502: not_null_violation ---
+  if (code === "23502") {
+    const match = detail?.match(/column "(.*?)"/);
+    if (match) {
+      return `Missing required field: "${match[1]}". Please provide a value.`;
+    }
     return `A required field is missing for this ${entityName}.`;
   }
 
-  // Connection issues
-  if (message.includes("ECONNREFUSED") || message.includes("AggregateError")) {
+  // --- 22P02: invalid input syntax (date, number, etc.) ---
+  if (code === "22P02") {
+    return `Invalid data format: ${detail || "check date or number fields."}`;
+  }
+
+  // --- 23514: check constraint (e.g., level, gender) ---
+  if (code === "23514") {
+    return `Invalid value – ${detail || "please check level, gender, or other constraints."}`;
+  }
+
+  // --- Connection issues ---
+  if (
+    message.includes("ECONNREFUSED") ||
+    message.includes("AggregateError") ||
+    message.includes("connect")
+  ) {
     return "Cannot connect to the database. Check your connection and try again.";
   }
 
-  return `Failed to save ${entityName}. Please try again.`;
+  // Fallback: use the original error message (or a generic one)
+  return message !== "An unexpected error occurred"
+    ? message
+    : `Failed to save ${entityName}. Please try again.`;
 }
 
 // ─── Action wrapper ───────────────────────────────────────────────────────────
@@ -106,7 +127,6 @@ export async function withAction<T = unknown>(
   } catch (err: unknown) {
     const msg = parseDbError(err).message;
 
-    // Log to server console for debugging — never reaches the client
     console.error(
       `[withAction]${label ? " " + label : ""} unhandled error:`,
       msg,

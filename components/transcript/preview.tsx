@@ -1,11 +1,5 @@
 "use client";
 
-/** Never render "undefined" or "null" - return empty string instead */
-function safeStr(v: string | null | undefined): string {
-  if (v == null || v === "undefined" || v === "null" || v.trim() === "") return "";
-  return v.trim();
-}
-
 /**
  * TranscriptPreview — UEW official transcript layout.
  *
@@ -98,7 +92,7 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
     student.middleName,
   ]
     .filter((x): x is string => typeof x === "string" && x.trim() !== "" && x !== "undefined")
-    .join(" ");
+    .join(" ").toUpperCase();
 
   const base: React.CSSProperties = {
     fontFamily: "Arial, Helvetica, sans-serif",
@@ -157,7 +151,7 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                     style={{
                       display: "flex",
                       flexDirection: "row",
-                      alignItems: "center",
+                      alignItems: "",
                       gap: "12px",
                       marginBottom: "4px",
                     }}
@@ -174,7 +168,7 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                     </div>
 
                     {/* Institution details */}
-                    <div style={{ flex: 1, textAlign: "center" }}>
+                    <div className="flex flex-row items-center justify-center ml-5">
                       <div
                         style={{
                           fontSize: "24px",
@@ -391,7 +385,7 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                             right: 0,
                             background: "white",
                             padding: "6px 12px 4px",
-                            borderTop: "0.5px solid #999",
+                            // borderTop: "0.5px solid #999",
                             display: "flex",
                             justifyContent: "space-between",
                             alignItems: "flex-end",
@@ -501,22 +495,25 @@ function SemesterBlock({
           </tbody>
           <tfoot>
             <tr>
-              <td
-                colSpan={5}
-                style={{
-                  ...tdTotals,
-                  fontSize: "10px",
-                  fontWeight: 700,
-                  textAlign: "left",
-                  padding: "4px 8px",
-                }}
-              >
-                TCR: {sem.creditsAttempted.toFixed(2)} &nbsp; TGP:{" "}
-                {sem.totalQualityPoints.toFixed(2)} &nbsp; SGPA:{" "}
-                {sem.sgpaFormatted} &nbsp; CCR:{" "}
-                {sem.cumulativeCreditsAttempted.toFixed(2)} &nbsp; CGV:{" "}
-                {sem.cumulativeQualityPoints.toFixed(2)} &nbsp; CGPA:{" "}
-                {sem.cumulativeGpaFormatted}
+              <td colSpan={5} style={{ ...tdTotals, padding: "4px 8px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "12px 65px", // horizontal and vertical spacing
+                    fontSize: "10px",
+                    fontWeight: 700,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <span>TCR: {sem.creditsAttempted.toFixed(2)}</span>
+                  <span>TGP: {sem.totalQualityPoints.toFixed(2)}</span>
+                  <span>SGPA: {sem.sgpaFormatted}</span>
+                  <span>CCR: {sem.cumulativeCreditsAttempted.toFixed(2)}</span>
+                  <span>CGV: {sem.cumulativeQualityPoints.toFixed(2)}</span>
+                  <span>CGPA: {sem.cumulativeGpaFormatted}</span>
+                </div>
               </td>
             </tr>
           </tfoot>

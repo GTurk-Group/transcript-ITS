@@ -171,7 +171,7 @@ export function generateGradeCSVTemplate(): string {
     "# - courseCode must match an existing active course",
     "# - semester must be FIRST or SECOND",
     "# - year is the academic year (e.g. 2021 for 2021/2022)",
-    "# - grade must be one of: A, B+, B, C+, C, D+, D, F",
+    "# - grade must be one of: A, B+, B, C+, C, D+, D, E, IC",
     "# - duplicate (indexNumber + courseCode + semester + year) rows are rejected",
   ].join("\n");
 
