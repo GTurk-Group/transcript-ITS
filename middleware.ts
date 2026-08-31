@@ -79,14 +79,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   // issue a fresh token and set it on the response.
   // The user never sees a session expiry mid-task.
 
-  const response = NextResponse.next({
-    request: {
-      headers: new Headers({
-        ...Object.fromEntries(request.headers.entries()),
-        "x-invoke-path": pathname,
-      }),
-    },
-  });
+  const response = NextResponse.next();
 
   if (isTokenExpiringSoon(session.exp)) {
     try {
@@ -114,10 +107,10 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
  *  - _next/static  — JS/CSS bundles
  *  - _next/image   — image optimisation responses
  *  - favicon.ico   — browser default request
- *  - public/       — static assets (images, fonts, etc.)
+ *  - files with extensions — public assets such as images and spreadsheets
  */
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|public/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)",
   ],
 };

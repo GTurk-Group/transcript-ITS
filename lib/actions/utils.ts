@@ -40,7 +40,7 @@ export function parseDbError(err: unknown): ParsedDbError {
 /**
  * Maps common Postgres error codes to user-facing messages with detailed context.
  *
- * @param err        The raw error thrown by Drizzle / postgres-js
+ * @param err        The raw error thrown by Drizzle or PostgreSQL
  * @param entityName Human-readable entity name for messages e.g. "student"
  */
 export function dbErrorMessage(err: unknown, entityName = "record"): string {

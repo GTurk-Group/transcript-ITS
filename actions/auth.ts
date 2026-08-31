@@ -83,7 +83,7 @@ export async function loginAction(
       return {
         status: "error",
         error:
-          "Cannot connect to the database. Check that PostgreSQL is running and DATABASE_URL is correct.",
+          "Cannot connect to Netlify Database. Confirm the latest deploy and database migration completed successfully.",
       };
     }
     return {

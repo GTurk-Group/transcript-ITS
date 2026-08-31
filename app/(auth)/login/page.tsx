@@ -128,12 +128,12 @@ function DatabaseErrorPanel() {
       </div>
       <h2 className="text-xl font-bold text-gray-900 dark:text-white">Database not reachable</h2>
       <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-        The app cannot connect to PostgreSQL. Check the following:
+        The app cannot connect to Netlify Database. Check the following:
       </p>
       <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-        <li className="flex gap-2"><span className="text-red-500 font-bold">1.</span> Is PostgreSQL running? Open Windows Services and check <strong>postgresql-x64-16</strong></li>
-        <li className="flex gap-2"><span className="text-red-500 font-bold">2.</span> Is <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">DATABASE_URL</code> set correctly in <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">.env.local</code>?</li>
-        <li className="flex gap-2"><span className="text-red-500 font-bold">3.</span> Did you run <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">pnpm db:push</code> to create the tables?</li>
+        <li className="flex gap-2"><span className="text-red-500 font-bold">1.</span> Confirm the latest Netlify deploy completed successfully.</li>
+        <li className="flex gap-2"><span className="text-red-500 font-bold">2.</span> Confirm the database migration ran during the deploy.</li>
+        <li className="flex gap-2"><span className="text-red-500 font-bold">3.</span> When developing locally, start the app with <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">netlify dev</code>.</li>
       </ul>
       <button onClick={() => window.location.reload()}
         className="mt-2 w-full rounded-xl bg-gray-900 py-2.5 text-sm font-semibold text-white hover:bg-gray-700 dark:bg-white dark:text-gray-900">
@@ -149,4 +149,4 @@ function CapIcon() {
       <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342" />
     </svg>
   );
-} 
+}
