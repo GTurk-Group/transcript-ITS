@@ -12,18 +12,20 @@ git clone <repo>
 cd tms
 pnpm install
 
-# 2. Configure authentication
+# 2. Configure environment
 cp .env.example .env.local
-# Edit .env.local — set JWT_SECRET
+# Edit .env.local — set JWT_SECRET and DATABASE_URL at minimum
 
-# 3. Start the Netlify development server
-netlify dev
-# Open /setup once to create the first SUPER_ADMIN
+# 3. Push schema to database
+pnpm db:push
 
-# 4. Generate a migration after schema changes
-pnpm db:generate --name describe_the_change
+# 4. Create the first SUPER_ADMIN
+pnpm seed:admin --email admin@example.com --password changeme123
 
-# 5. Start the Next.js development server when Netlify emulation is not needed
+# 5. (Optional) Seed demo data
+pnpm seed:demo
+
+# 6. Start dev server
 pnpm dev
 # → http://localhost:3000
 ```
@@ -34,7 +36,11 @@ pnpm dev
 
 | Variable               | Required       | Description                                                         |
 | ---------------------- | -------------- | ------------------------------------------------------------------- |
+| `DATABASE_URL`         | **Yes**        | PostgreSQL connection string                                        |
 | `JWT_SECRET`           | **Yes** (prod) | At least 32 chars. `openssl rand -base64 64`                        |
+| `SUPER_ADMIN_EMAIL`    | Optional       | Creates the first admin account when no admins exist                |
+| `SUPER_ADMIN_PASSWORD` | Optional       | Password for the first admin account; must be at least 8 characters |
+| `SUPER_ADMIN_ROLE`     | Optional       | Defaults to `SUPER_ADMIN`                                           |
 
 See `.env.example` for all options with comments.
 
@@ -45,7 +51,7 @@ See `.env.example` for all options with comments.
 | Layer      | Choice                           | Why                                                        |
 | ---------- | -------------------------------- | ---------------------------------------------------------- |
 | Framework  | Next.js App Router               | Server components, server actions, Edge middleware         |
-| Database   | Netlify Database + Drizzle ORM   | Managed Postgres with deploy-time migrations               |
+| Database   | PostgreSQL + Drizzle ORM         | Type-safe queries, schema-first migrations                 |
 | Auth       | JWT via `jose` + bcrypt sessions | Edge-compatible JWT; bcrypt isolated to Node.js only       |
 | PDF        | Puppeteer                        | Pixel-perfect A4 rendering from HTML                       |
 | Validation | Zod                              | Runtime schema validation for all form inputs and CSV rows |
@@ -69,6 +75,7 @@ Every subsequent request:
     → verifyToken (jose)
     → enforces PROTECTED_PREFIXES + SUPER_ADMIN_PREFIXES
     → silently refreshes token if expiring within 2h
+    → injects x-invoke-path header for breadcrumb
 
 Server component / server action:
   → requireAuth() / requirePermission() / assertPermission()
@@ -156,7 +163,7 @@ tms/
 ├── next.config.ts             ← body size limit, security headers, server externals
 ├── tailwind.config.ts         ← darkMode: "class", animations
 ├── drizzle.config.ts          ← schema path, migrations output
-├── middleware.ts               ← Edge authentication and role guards
+├── middleware.ts               ← Edge: auth guards + x-invoke-path header
 │
 ├── app/
 │   ├── layout.tsx             ← root: suppressHydrationWarning, dark mode init script
@@ -202,19 +209,24 @@ tms/
 │   ├── transcript/            ← assembler, generator, checksum, types
 │   ├── bulk/                  ← student: parser, validator, pipeline, report
 │   ├── bulk/grades/           ← grade: parser, validator, pipeline, report
+│   ├── pdf/                   ← generator (Puppeteer), template (HTML→TranscriptObject)
 │   ├── templates/             ← CSV template generators (BOM+CRLF)
 │   ├── audit.ts               ← logAuditEvent, extractRequestMeta
 │   ├── audit-log.ts           ← queryAuditRows, queryAuditStats, classification
 │   └── actions/utils.ts       ← parseDbError, withAction
 │
 ├── db/
-│   ├── index.ts               ← Netlify Database Drizzle client
+│   ├── index.ts               ← Drizzle + Neon HTTP client
 │   ├── schema.ts              ← all tables, enums, indexes
-│
-├── netlify/database/migrations/ ← migrations applied automatically on deploy
+│   └── migrations/
+│       └── 0001_initial.sql   ← complete schema DDL
 │
 ├── types/
 │   └── auth.ts                ← Role, SessionPayload, AuthenticatedAdmin, ActionState
+│
+└── scripts/
+    ├── seed-admin.ts          ← create first SUPER_ADMIN
+    └── seed-demo.ts           ← seed institution, courses, students, grades
 ```
 
 ---
@@ -242,11 +254,37 @@ tms/
 
 ```
 ☐ Set JWT_SECRET to a ≥32-char random value
-☐ Confirm the Netlify Database migration completed during deploy
-☐ Create the first SUPER_ADMIN through /setup
+☐ Set DATABASE_URL to your production PostgreSQL connection string
+☐ Run pnpm db:migrate (do NOT use db:push in production)
+☐ Create at least one SUPER_ADMIN via pnpm seed:admin
 ☐ Add at least one institution record via /admin/institution
 ☐ Add at least one registrar via /admin/registrar
+☐ For Vercel: swap puppeteer for puppeteer-core + @sparticuz/chromium
+☐ For S3 PDF storage: implement writeTranscriptFile in actions/transcripts.ts
+☐ Remove PUPPETEER_EXECUTABLE_PATH from env if using @sparticuz/chromium
 ☐ Confirm tailwind.config.ts has darkMode: "class"
 ☐ Confirm app/layout.tsx has suppressHydrationWarning on <html>
 ☐ Set NODE_ENV=production in your deployment environment
 ```
+
+---
+
+## Self-hosted PostgreSQL (non-Neon)
+
+Replace `db/index.ts`:
+
+```typescript
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import * as schema from "./schema";
+
+const client = postgres(process.env.DATABASE_URL!);
+export const db = drizzle(client, { schema });
+```
+
+```bash
+pnpm remove @neondatabase/serverless drizzle-orm
+pnpm add postgres drizzle-orm
+```
+
+Update `drizzle.config.ts` dialect: still `"postgresql"` — no change needed.

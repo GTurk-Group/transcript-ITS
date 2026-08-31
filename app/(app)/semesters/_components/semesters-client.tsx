@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   createSemesterAction, deleteSemesterAction, type Semester,
 } from "@/actions/crud/semesters";
@@ -16,7 +15,6 @@ import { Pagination, usePagination } from "@/components/ui/pagination";
 const IDLE = { status: "idle" } as const;
 
 export function SemestersClient({ initial }: { initial: Semester[] }) {
-  const router = useRouter();
   const toast = useToast();
   const [semesters, setSemesters] = useState(initial);
   const [showCreate, setShowCreate] = useState(false);
@@ -37,7 +35,7 @@ export function SemestersClient({ initial }: { initial: Semester[] }) {
     if (r.status === "success") {
       toast.success("Semester created");
       setShowCreate(false);
-      router.refresh();
+      window.location.reload();
     } else if (r.status === "error") {
       toast.error(r.error);
     }

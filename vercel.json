@@ -1,0 +1,6 @@
+{
+  "functions": {
+    "app/api/bulk/upload/route.ts":        { "maxDuration": 30 },
+    "app/api/bulk/grades/upload/route.ts": { "maxDuration": 30 }
+  }
+}

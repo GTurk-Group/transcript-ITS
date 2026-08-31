@@ -8,7 +8,6 @@
  */
 
 import { cookies } from "next/headers";
-import { cache } from "react";
 import { COOKIE_NAME, COOKIE_OPTIONS } from "./config";
 import { signToken, verifyToken } from "./jwt";
 import type { AuthenticatedAdmin, SessionPayload } from "@/types/auth";
@@ -36,12 +35,12 @@ export async function createSession(payload: SessionPayload): Promise<void> {
  * const session = await getSession();
  * if (!session) redirect("/login");
  */
-export const getSession = cache(async (): Promise<AuthenticatedAdmin | null> => {
+export async function getSession(): Promise<AuthenticatedAdmin | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   if (!token) return null;
   return verifyToken(token);
-});
+}
 
 /**
  * Destroy the session cookie.

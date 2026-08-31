@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * AppShell — redesigned authenticated layout.
  *
@@ -5,7 +7,7 @@
  *  - Indigo accent colour throughout (replaces flat gray)
  *  - Grouped navigation sections (main / academic / system)
  *  - Active link has left accent bar + filled background
- *  - Topbar shows the current page title
+ *  - Topbar shows page title + current time
  *  - User avatar with initials (not just first letter)
  *  - Role badge styled by role level
  *  - Smooth sidebar slide animation on mobile
@@ -15,8 +17,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { logoutAction } from "@/actions/auth";
 import type { AuthenticatedAdmin } from "@/types/auth";
 
@@ -76,14 +76,15 @@ const ROLE_STYLES: Record<string, string> = {
 type Props = {
   session: AuthenticatedAdmin;
   children: React.ReactNode;
+  pathname: string;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function AppShell({ session, children }: Props) {
-  const pathname = usePathname();
+export function AppShell({ session, children, pathname }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dark, setDark] = useState(false);
+  const [time, setTime] = useState("");
 
   // Dark mode
   useEffect(() => {
@@ -99,6 +100,14 @@ export function AppShell({ session, children }: Props) {
     localStorage.setItem("tms-theme", next ? "dark" : "light");
     document.documentElement.classList.toggle("dark", next);
   }, [dark]);
+
+  // Live clock
+  useEffect(() => {
+    const tick = () => setTime(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }));
+    tick();
+    const id = setInterval(tick, 10_000);
+    return () => clearInterval(id);
+  }, []);
 
   const initials = session.email
     .split("@")[0]
@@ -160,7 +169,7 @@ export function AppShell({ session, children }: Props) {
                       : pathname.startsWith(item.href);
                     return (
                       <li key={item.href}>
-                        <Link
+                        <a
                           href={item.href}
                           onClick={() => setSidebarOpen(false)}
                           className={[
@@ -181,7 +190,7 @@ export function AppShell({ session, children }: Props) {
                             {item.icon}
                           </span>
                           {item.label}
-                        </Link>
+                        </a>
                       </li>
                     );
                   })}
@@ -194,7 +203,7 @@ export function AppShell({ session, children }: Props) {
         {/* User footer */}
         <div className="shrink-0 border-t border-gray-100 dark:border-gray-800 p-3 space-y-1">
           {/* Profile link */}
-          <Link href="/profile"
+          <a href="/profile"
             className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors group">
             <div className={[
               "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold",
@@ -213,7 +222,7 @@ export function AppShell({ session, children }: Props) {
                 {session.role.replace("_", " ")}
               </span>
             </div>
-          </Link>
+          </a>
 
           {/* Sign out */}
           <form action={logoutAction}>
@@ -249,8 +258,14 @@ export function AppShell({ session, children }: Props) {
             </h1>
           </div>
 
-          {/* Right: dark mode */}
+          {/* Right: clock + dark mode */}
           <div className="flex items-center gap-1">
+            {time && (
+              <span className="hidden sm:flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+                <ClockIcon />
+                {time}
+              </span>
+            )}
             <button
               onClick={toggleDark}
               className="ml-1 rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors"
@@ -336,3 +351,4 @@ function HamburgerIcon() { return <svg className="h-5 w-5" fill="none" viewBox="
 function SunIcon() { return <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" /></svg>; }
 function MoonIcon() { return <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" /></svg>; }
 function ChevronIcon() { return <svg className="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>; }
+function ClockIcon() { return <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>; }

@@ -6,42 +6,42 @@
 
 import { requireAuth } from "@/lib/auth/rbac";
 import { db } from "@/db";
-import { sql } from "drizzle-orm";
+import { students, courses, programmes, semesters, grades, transcripts } from "@/db/schema";
+import { count, eq } from "drizzle-orm";
 import { DashboardClient } from "./_components/dashboard-client";
 
 export default async function DashboardPage() {
   const session = await requireAuth();
 
-  const [stats] = await db.execute<{
-    studentCount: number;
-    activeStudentCount: number;
-    courseCount: number;
-    programmeCount: number;
-    semesterCount: number;
-    gradeCount: number;
-    transcriptCount: number;
-  }>(sql`
-    SELECT
-      (SELECT COUNT(*)::int FROM students) AS "studentCount",
-      (SELECT COUNT(*)::int FROM students WHERE status = 'ACTIVE') AS "activeStudentCount",
-      (SELECT COUNT(*)::int FROM courses) AS "courseCount",
-      (SELECT COUNT(*)::int FROM programmes) AS "programmeCount",
-      (SELECT COUNT(*)::int FROM semesters) AS "semesterCount",
-      (SELECT COUNT(*)::int FROM grades) AS "gradeCount",
-      (SELECT COUNT(*)::int FROM transcripts) AS "transcriptCount"
-  `);
+  const [
+    [{ studentCount }],
+    [{ courseCount }],
+    [{ programmeCount }],
+    [{ semesterCount }],
+    [{ gradeCount }],
+    [{ transcriptCount }],
+    [{ activeStudentCount }],
+  ] = await Promise.all([
+    db.select({ studentCount: count() }).from(students),
+    db.select({ courseCount: count() }).from(courses),
+    db.select({ programmeCount: count() }).from(programmes),
+    db.select({ semesterCount: count() }).from(semesters),
+    db.select({ gradeCount: count() }).from(grades),
+    db.select({ transcriptCount: count() }).from(transcripts),
+    db.select({ activeStudentCount: count() }).from(students).where(eq(students.status, "ACTIVE")),
+  ]);
 
   return (
     <DashboardClient
       session={session}
       stats={{
-        students: stats.studentCount,
-        activeStudents: stats.activeStudentCount,
-        courses: stats.courseCount,
-        programmes: stats.programmeCount,
-        semesters: stats.semesterCount,
-        grades: stats.gradeCount,
-        transcripts: stats.transcriptCount,
+        students: studentCount,
+        activeStudents: activeStudentCount,
+        courses: courseCount,
+        programmes: programmeCount,
+        semesters: semesterCount,
+        grades: gradeCount,
+        transcripts: transcriptCount,
       }}
     />
   );
