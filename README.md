@@ -19,13 +19,7 @@ cp .env.example .env.local
 # 3. Push schema to database
 pnpm db:push
 
-# 4. Create the first SUPER_ADMIN
-pnpm seed:admin --email admin@example.com --password changeme123
-
-# 5. (Optional) Seed demo data
-pnpm seed:demo
-
-# 6. Start dev server
+# 4. Start dev server
 pnpm dev
 # → http://localhost:3000
 ```
@@ -221,12 +215,8 @@ tms/
 │   └── migrations/
 │       └── 0001_initial.sql   ← complete schema DDL
 │
-├── types/
-│   └── auth.ts                ← Role, SessionPayload, AuthenticatedAdmin, ActionState
-│
-└── scripts/
-    ├── seed-admin.ts          ← create first SUPER_ADMIN
-    └── seed-demo.ts           ← seed institution, courses, students, grades
+└── types/
+    └── auth.ts                ← Role, SessionPayload, AuthenticatedAdmin, ActionState
 ```
 
 ---
@@ -256,7 +246,6 @@ tms/
 ☐ Set JWT_SECRET to a ≥32-char random value
 ☐ Set DATABASE_URL to your production PostgreSQL connection string
 ☐ Run pnpm db:migrate (do NOT use db:push in production)
-☐ Create at least one SUPER_ADMIN via pnpm seed:admin
 ☐ Add at least one institution record via /admin/institution
 ☐ Add at least one registrar via /admin/registrar
 ☐ For Vercel: swap puppeteer for puppeteer-core + @sparticuz/chromium
