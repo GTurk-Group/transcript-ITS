@@ -1,5 +1,11 @@
 "use client";
 
+/** Never render "undefined" or "null" - return empty string instead */
+function safeStr(v: string | null | undefined): string {
+  if (v == null || v === "undefined" || v === "null" || v.trim() === "") return "";
+  return v.trim();
+}
+
 /**
  * TranscriptPreview — UEW official transcript layout.
  *
@@ -95,7 +101,7 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
     .join(" ").toUpperCase();
 
   const base: React.CSSProperties = {
-    fontFamily: "Arial, Helvetica, sans-serif",
+    fontFamily: "Poppins, Helvetica, sans-serif",
     fontSize: "9px",
     color: "#000",
   };
@@ -151,8 +157,8 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                     style={{
                       display: "flex",
                       flexDirection: "row",
-                      alignItems: "",
-                      gap: "12px",
+                      alignItems: "center",
+                      // gap: "12px",
                       marginBottom: "4px",
                     }}
                   >
@@ -168,33 +174,35 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                     </div>
 
                     {/* Institution details */}
-                    <div className="flex flex-row items-center justify-center ml-5">
+                    <div style={{ flex: 1, marginLeft: "-100px" }}>
                       <div
                         style={{
-                          fontSize: "24px",
+                          fontSize: "25px",
                           fontWeight: 700,
                           letterSpacing: "0.4px",
                           lineHeight: 1.2,
                           textTransform: "uppercase",
                           marginBottom: "2px",
+                          textAlign: "center"
                         }}
                       >
                         {institution.name}
                       </div>
                       <div
                         style={{
-                          fontSize: "16px",
+                          fontSize: "17px",
                           fontWeight: 700,
                           lineHeight: 1.3,
                           marginBottom: "2px",
+                          textAlign: "center"
                         }}
                       >
                         Academic Affairs Office
                       </div>
-                      <div style={{ fontSize: "11px", lineHeight: 1.4 }}>
+                      <div style={{ fontSize: "12px", lineHeight: 1.4, textAlign: "center" }}>
                         {institution.address ?? UEW_CONTACT.poBox}
                       </div>
-                      <div style={{ fontSize: "11px", lineHeight: 1.4 }}>
+                      <div style={{ fontSize: "12px", lineHeight: 1.4, textAlign: "center" }}>
                         Email: {UEW_CONTACT.email} &nbsp;|&nbsp; Website:{" "}
                         {UEW_CONTACT.website}
                       </div>
@@ -204,12 +212,12 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                   {/* Title bar */}
                   <div
                     style={{
-                      background: "#2e5cb8",
+                      background: "#7fb1e8",
                       color: "white",
                       textAlign: "center",
-                      fontSize: "12px",
+                      fontSize: "16px",
                       fontWeight: 700,
-                      padding: "3px",
+                      padding: "5px",
                       marginBottom: "8px",
                       letterSpacing: "0.5px",
                       textTransform: "uppercase",
@@ -240,10 +248,10 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
 
                     {/* Row 2: Date Of Birth + Period + Gender (single line, never wraps) */}
                     <div style={{ display: "flex", width: "100%", marginTop: "2px" }}>
-                      <div style={{ ...infoLineRowStyle, flex: "0 0 35%", paddingRight: "10px", boxSizing: "border-box", whiteSpace: "nowrap" }}>
+                      {/* <div style={{ ...infoLineRowStyle, flex: "0 0 35%", paddingRight: "10px", boxSizing: "border-box", whiteSpace: "nowrap" }}>
                         <span style={infoLineLabelStyle}>Date Of Birth:</span>
                         <span>{formatTranscriptDateOfBirth(student.dateOfBirth)}</span>
-                      </div>
+                      </div> */}
                       <div style={{ ...infoLineRowStyle, flex: "0 0 35%", paddingRight: "10px", boxSizing: "border-box", whiteSpace: "nowrap" }}>
                         <span style={infoLineLabelStyle}>Period:</span>
                         <span>
@@ -271,12 +279,12 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                   {/* Warning bar */}
                   <div
                     style={{
-                      background: "#2e5cb8",
+                      background: "#1762bd",
                       color: "white",
                       textAlign: "center",
-                      fontSize: "9px",
+                      fontSize: "12px",
                       fontWeight: 700,
-                      padding: "2px",
+                      padding: "4px",
                       margin: "4px 0 6px",
                     }}
                   >
@@ -384,15 +392,15 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                             left: 0,
                             right: 0,
                             background: "white",
-                            padding: "6px 12px 4px",
-                            // borderTop: "0.5px solid #999",
+                            padding: "6px 14px 4px",
+                            borderTop: "0.5px solid #b3b3b3",
                             display: "flex",
                             justifyContent: "space-between",
                             alignItems: "flex-end",
-                            fontSize: "7.5px",
+                            fontSize: "9px",
                             color: "#000",
                             gap: "20px",
-                            zIndex: 1000,
+                            // zIndex: 1000,
                           }}
                         >
                           <span>{TRANSCRIPT_FOOTER_LEGEND}</span>
@@ -451,7 +459,7 @@ function SemesterBlock({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          borderBottom: "1px solid #2e5cb8",
+          borderBottom: "1px solid #87afff",
           marginBottom: "4px",
         }}
         aria-expanded={!collapsed}
@@ -473,8 +481,8 @@ function SemesterBlock({
         >
           <thead>
             <tr>
-              <th style={{ ...thBase, width: "72px", textAlign: "left" }}>
-                Code
+              <th style={{ ...thBase, width: "72px", textAlign: "center" }}>
+                Course Code
               </th>
               <th style={{ ...thBase, textAlign: "left" }}>Course Title</th>
               <th style={{ ...thBase, width: "44px", textAlign: "center" }}>
@@ -500,7 +508,7 @@ function SemesterBlock({
                   style={{
                     display: "flex",
                     flexWrap: "wrap",
-                    gap: "12px 65px", // horizontal and vertical spacing
+                    gap: "12px 50px", // horizontal and vertical spacing
                     fontSize: "10px",
                     fontWeight: 700,
                     justifyContent: "center",
@@ -544,11 +552,11 @@ function SemesterBlock({
 // ─── Course Row ──────────────────────────────────────────────────────────────
 
 function CourseRow({ course }: { course: TranscriptCourse }) {
-  const displayGrade = course.grade === "F" ? "E" : course.grade;
+  const displayGrade = course.grade === "IC" ? "E" : course.grade;
 
   return (
     <tr style={{ borderBottom: "0.5px solid #ccc" }}>
-      <td style={{ ...tdBase, textAlign: "left", fontWeight: 700 }}>
+      <td style={{ ...tdBase, textAlign: "center" }}>
         {course.courseCode}
       </td>
       <td style={{ ...tdBase, textAlign: "left", textTransform: "uppercase" }}>
@@ -562,7 +570,7 @@ function CourseRow({ course }: { course: TranscriptCourse }) {
       <td style={{ ...tdBase, textAlign: "center" }}>
         {course.creditHours.toFixed(2)}
       </td>
-      <td style={{ ...tdBase, textAlign: "center" }}>{displayGrade}</td>
+      <td style={{ ...tdBase, textAlign: "center" }}>{course.isScoring ? displayGrade : "P"}</td>
       <td style={{ ...tdBase, textAlign: "center" }}>
         {course.isScoring ? course.qualityPointsFormatted : "0.00"}
       </td>
@@ -580,14 +588,16 @@ function PrintStyles() {
           @media print {
             @page {
               size: A4 portrait;
-              margin: 4mm 4mm;
+              margin: 3mm 3mm;
               @bottom-center {
               font-size: 8px;
               color: #000;
-              font-family: Arial, Helvetica, sans-serif;
+              font-family: Poppins, Helvetica, sans-serif;
+              content: "Page " counter(page) " of " counter(pages);
+              padding-bottom: 10px;
             }
-            }
-
+          
+      }
             body * { visibility: hidden; }
             #transcript-print-root,
             #transcript-print-root * { visibility: visible; }
@@ -635,15 +645,15 @@ const thBase: React.CSSProperties = {
   background: "#d4d4d4",
   fontSize: "9px",
   fontWeight: 700,
-  padding: "2px 4px",
-  border: "0.5px solid #999",
+  padding: "1px 4px",
+  border: "0.5px solid #cfcdcd",
   color: "#000",
 };
 
 const tdBase: React.CSSProperties = {
-  fontSize: "9px",
+  fontSize: "10px",
   padding: "2px 4px",
-  border: "0.5px solid #ccc",
+  border: "0.5px solid #cfcdcd",
   color: "#000",
 };
 

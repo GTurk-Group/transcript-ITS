@@ -11,6 +11,7 @@ const config: NextConfig = {
         ? [{ protocol: "http" as const, hostname: "localhost" }]
         : []),
     ],
+    qualities: [100],
   },
 
   experimental: {
