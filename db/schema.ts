@@ -31,7 +31,9 @@ export const gradeEnum = pgEnum("grade", [
   "D+",
   "D",
   "E",
+  "F",
   "IC",
+  "P",
 ]);
 export const transcriptStatusEnum = pgEnum("transcript_status", [
   "PENDING",
@@ -46,6 +48,13 @@ export const uploadJobStatusEnum = pgEnum("upload_job_status", [
   "FAILED",
 ]);
 
+export const courseCategoryEnum = pgEnum("course_category", [
+  "OSIS_OLD",
+  "OSIS_NEW",
+  "ITS",
+  "OSIS_2",
+]);
+
 export const institution = pgTable("institution", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
@@ -54,17 +63,34 @@ export const institution = pgTable("institution", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const campuses = pgTable(
+  "campuses",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: varchar("name", { length: 255 }).notNull(),
+    code: varchar("code", { length: 50 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    address: text("address"),
+    isActive: boolean("is_active").default(true).notNull(),
+  },
+  (t) => [
+    uniqueIndex("campuses_name_unique").on(t.name),
+    uniqueIndex("campuses_code_unique").on(t.code),
+  ],
+);
+
 export const admins = pgTable(
   "admins",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     email: varchar("email", { length: 255 }).notNull(),
     password: text("password").notNull(),
+    campusId: uuid("campus_id").references(() => campuses.id),
     role: roleEnum("role").notNull(),
     isActive: boolean("is_active").default(true).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (t) => ({ emailUnique: uniqueIndex("admins_email_unique").on(t.email) }),
+  (t) => [uniqueIndex("admins_email_unique").on(t.email)],
 );
 
 export const programmes = pgTable(
@@ -76,13 +102,14 @@ export const programmes = pgTable(
     programmeType: varchar("programme_type", { length: 20 })
       .notNull()
       .default("DEGREE"),
+    programmeCampus: varchar("programme_campus", { length: 150 }),
     isActive: boolean("is_active").default(true),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (t) => ({
-    nameUnique: uniqueIndex("programmes_name_unique").on(t.name),
-    codeUnique: uniqueIndex("programmes_code_unique").on(t.code),
-  }),
+  (t) => [
+    uniqueIndex("programmes_name_unique").on(t.name),
+    uniqueIndex("programmes_code_unique").on(t.code),
+  ],
 );
 
 export const students = pgTable(
@@ -102,6 +129,7 @@ export const students = pgTable(
       .references(() => programmes.id)
       .notNull(),
     level: integer("level").notNull(),
+    campusId: uuid("campus_id").references(() => campuses.id),
     entryYear: integer("entry_year").notNull(),
     graduationYear: integer("graduation_year"),
     status: studentStatusEnum("status").default("ACTIVE").notNull(),
@@ -109,9 +137,7 @@ export const students = pgTable(
     phoneNumber: varchar("phone_number", { length: 50 }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (t) => ({
-    indexUnique: uniqueIndex("students_index_unique").on(t.indexNumber),
-  }),
+  (t) => [uniqueIndex("students_index_unique").on(t.indexNumber)],
 );
 
 export const courses = pgTable(
@@ -120,12 +146,13 @@ export const courses = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     code: varchar("code", { length: 50 }).notNull(),
     title: varchar("title", { length: 255 }).notNull(),
+    category: courseCategoryEnum("category").default("OSIS_NEW").notNull(),
     creditHours: integer("credit_hours").notNull(),
     isScoring: boolean("is_scoring").default(true),
     isActive: boolean("is_active").default(true),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (t) => ({ codeUnique: uniqueIndex("courses_code_unique").on(t.code) }),
+  (t) => [uniqueIndex("courses_code_category_unique").on(t.category, t.code)],
 );
 
 export const semesters = pgTable(
@@ -136,9 +163,7 @@ export const semesters = pgTable(
     semester: semesterEnum("semester").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (t) => ({
-    uniqueSemester: uniqueIndex("unique_year_semester").on(t.year, t.semester),
-  }),
+  (t) => [uniqueIndex("unique_year_semester").on(t.year, t.semester)],
 );
 
 export const grades = pgTable(
@@ -166,17 +191,14 @@ export const grades = pgTable(
     supersededById: uuid("superseded_by_id"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (t) => ({
-    activeGradeUnique: uniqueIndex("unique_active_student_course_semester")
+  (t) => [
+    uniqueIndex("unique_active_student_course_semester")
       .on(t.studentId, t.courseId, t.semesterId)
       .where(sql`is_superseded = false`),
-    studentIdx: index("grades_student_idx").on(t.studentId),
-    semesterIdx: index("grades_semester_idx").on(t.semesterId),
-    studentSemesterIdx: index("grades_student_semester_idx").on(
-      t.studentId,
-      t.semesterId,
-    ),
-  }),
+    index("grades_student_idx").on(t.studentId),
+    index("grades_semester_idx").on(t.semesterId),
+    index("grades_student_semester_idx").on(t.studentId, t.semesterId),
+  ],
 );
 
 export const auditLogs = pgTable(
@@ -195,10 +217,10 @@ export const auditLogs = pgTable(
     userAgent: text("user_agent"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (t) => ({
-    createdAtIdx: index("audit_logs_created_at_idx").on(t.createdAt),
-    adminIdx: index("audit_logs_admin_idx").on(t.adminId),
-  }),
+  (t) => [
+    index("audit_logs_created_at_idx").on(t.createdAt),
+    index("audit_logs_admin_idx").on(t.adminId),
+  ],
 );
 
 export const registrar = pgTable("registrar", {
@@ -228,13 +250,11 @@ export const transcripts = pgTable(
     errorMessage: text("error_message"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (t) => ({
-    transcriptUnique: uniqueIndex("transcript_number_unique").on(
-      t.transcriptNumber,
-    ),
-    studentIdx: index("transcripts_student_idx").on(t.studentId),
-    createdAtIdx: index("transcripts_created_at_idx").on(t.createdAt),
-  }),
+  (t) => [
+    uniqueIndex("transcript_number_unique").on(t.transcriptNumber),
+    index("transcripts_student_idx").on(t.studentId),
+    index("transcripts_created_at_idx").on(t.createdAt),
+  ],
 );
 
 export const uploadJobs = pgTable("upload_jobs", {
@@ -265,7 +285,7 @@ export const uploadJobRows = pgTable(
     errorMessage: text("error_message"),
     isValid: boolean("is_valid").default(false).notNull(),
   },
-  (t) => ({ jobIdx: index("upload_job_rows_job_idx").on(t.jobId) }),
+  (t) => [index("upload_job_rows_job_idx").on(t.jobId)],
 );
 
 export const rateLimitAttempts = pgTable(
@@ -275,5 +295,5 @@ export const rateLimitAttempts = pgTable(
     key: varchar("key", { length: 255 }).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (t) => ({ keyIdx: index("rate_limit_key_idx").on(t.key, t.createdAt) }),
+  (t) => [index("rate_limit_key_idx").on(t.key, t.createdAt)],
 );

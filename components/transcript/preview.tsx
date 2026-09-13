@@ -248,10 +248,10 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
 
                     {/* Row 2: Date Of Birth + Period + Gender (single line, never wraps) */}
                     <div style={{ display: "flex", width: "100%", marginTop: "2px" }}>
-                      {/* <div style={{ ...infoLineRowStyle, flex: "0 0 35%", paddingRight: "10px", boxSizing: "border-box", whiteSpace: "nowrap" }}>
+                      <div style={{ ...infoLineRowStyle, flex: "0 0 35%", paddingRight: "10px", boxSizing: "border-box", whiteSpace: "nowrap" }}>
                         <span style={infoLineLabelStyle}>Date Of Birth:</span>
                         <span>{formatTranscriptDateOfBirth(student.dateOfBirth)}</span>
-                      </div> */}
+                      </div>
                       <div style={{ ...infoLineRowStyle, flex: "0 0 35%", paddingRight: "10px", boxSizing: "border-box", whiteSpace: "nowrap" }}>
                         <span style={infoLineLabelStyle}>Period:</span>
                         <span>
@@ -392,7 +392,7 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                             left: 0,
                             right: 0,
                             background: "white",
-                            padding: "6px 14px 4px",
+                            padding: "6px 14px 1px",
                             borderTop: "0.5px solid #b3b3b3",
                             display: "flex",
                             justifyContent: "space-between",
@@ -588,7 +588,7 @@ function PrintStyles() {
           @media print {
             @page {
               size: A4 portrait;
-              margin: 3mm 3mm;
+              margin: 2mm 2mm;
               @bottom-center {
               font-size: 8px;
               color: #000;

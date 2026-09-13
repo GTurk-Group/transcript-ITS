@@ -1,9 +1,6 @@
 /**
  * POST /api/bulk/courses/upload
- * Parses, validates, and inserts courses from a CSV file.
- * Auth: manage_courses permission (ADMIN+).
- *
- * CSV columns: code, title, credit_hours, is_scoring
+ * CSV columns: code, title, credit_hours, is_scoring (optional)
  */
 
 import { type NextRequest, NextResponse } from "next/server";
@@ -18,17 +15,31 @@ const MAX_BYTES = 5 * 1024 * 1024;
 const MAX_ROWS = 2_000;
 
 const rowSchema = z.object({
-  code: z.string().min(1, "Code is required").max(50),
-  title: z.string().min(1, "Title is required").max(255),
+  code: z.string().min(1, "Course code is required").max(50),
+  title: z.string().min(1, "Course title is required").max(255),
   creditHours: z.coerce
-    .number()
-    .int()
+    .number({
+      invalid_type_error: "credit_hours must be a whole number (e.g. 2, 3, 6)",
+    })
+    .int("credit_hours must be a whole number — no decimals")
     .min(1, "credit_hours must be at least 1"),
   isScoring: z.string().transform((v) => v.toLowerCase() !== "false"),
+  category: z
+    .enum(["OSIS_OLD", "OSIS_NEW", "ITS", "OSIS_2"])
+    .default("OSIS_NEW"),
 });
 
+function friendlyColError(field: string, raw: string, msg: string): string {
+  const labels: Record<string, string> = {
+    code: "code column",
+    title: "title column",
+    creditHours: "credit_hours column",
+    isScoring: "is_scoring column",
+  };
+  return `${labels[field] ?? field} "${raw || "(empty)"}" — ${msg}`;
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  // ── Auth ──────────────────────────────────────────────────────────────────
   const token = req.cookies.get(COOKIE_NAME)?.value;
   const session = token ? await verifyToken(token) : null;
   if (!session)
@@ -36,22 +47,37 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!can(session, "manage_courses"))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  // ── File ──────────────────────────────────────────────────────────────────
   let form: FormData;
   try {
     form = await req.formData();
   } catch {
     return NextResponse.json(
-      { error: "Expected multipart/form-data." },
+      { error: "Expected a multipart/form-data file upload." },
       { status: 400 },
     );
   }
 
   const file = form.get("file");
   if (!(file instanceof File))
-    return NextResponse.json({ error: "No file provided." }, { status: 400 });
+    return NextResponse.json(
+      { error: "No file was attached. Please select a CSV file." },
+      { status: 400 },
+    );
   if (file.size > MAX_BYTES)
-    return NextResponse.json({ error: "File exceeds 5 MB." }, { status: 413 });
+    return NextResponse.json(
+      {
+        error: `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max 5 MB.`,
+      },
+      { status: 413 },
+    );
+  if (!file.name.toLowerCase().endsWith(".csv"))
+    return NextResponse.json(
+      {
+        error:
+          "Only CSV files are accepted. In Excel: File → Save As → CSV UTF-8.",
+      },
+      { status: 400 },
+    );
 
   const text = await file.text();
   const lines = text
@@ -60,45 +86,59 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     .filter(Boolean);
   if (lines.length < 2)
     return NextResponse.json(
-      { error: "CSV must have a header and at least one data row." },
+      {
+        error:
+          "The CSV has no data rows. Add course data below the header row.",
+      },
+      { status: 400 },
+    );
+  if (lines.length > MAX_ROWS + 1)
+    return NextResponse.json(
+      {
+        error: `File has ${lines.length - 1} data rows. Maximum is ${MAX_ROWS}. Split into smaller batches.`,
+      },
       { status: 400 },
     );
 
-  // ── Parse header ──────────────────────────────────────────────────────────
   const header = lines[0]
     .toLowerCase()
     .split(",")
     .map((h) => h.trim().replace(/^"|"$/g, ""));
   const codeIdx = header.indexOf("code");
   const titleIdx = header.indexOf("title");
-  const creditIdx = header.findIndex(
-    (h) => h === "credit_hours" || h === "credithours" || h === "credits",
+  const creditIdx = header.findIndex((h) =>
+    ["credit_hours", "credithours", "credits"].includes(h),
   );
-  const scoringIdx = header.findIndex(
-    (h) => h === "is_scoring" || h === "isscoring" || h === "scoring",
+  const scoringIdx = header.findIndex((h) =>
+    ["is_scoring", "isscoring", "scoring"].includes(h),
+  );
+  const categoryIdx = header.findIndex((h) =>
+    ["category", "course_category", "cat"].includes(h),
   );
 
-  if (codeIdx === -1 || titleIdx === -1 || creditIdx === -1) {
+  const missing = [
+    codeIdx === -1 && "code",
+    titleIdx === -1 && "title",
+    creditIdx === -1 && "credit_hours",
+  ].filter(Boolean);
+  if (missing.length > 0) {
     return NextResponse.json(
       {
-        error: `Missing required columns. Found: [${header.join(", ")}]. Need: code, title, credit_hours.`,
+        error: `Missing required column(s): ${missing.join(", ")}. Your header row is: [${header.join(", ")}]. Download the template for the correct format.`,
       },
       { status: 400 },
     );
   }
 
   const dataLines = lines.slice(1).slice(0, MAX_ROWS);
-
-  // ── Validate rows ─────────────────────────────────────────────────────────
   type ValidRow = {
-    row: number;
     code: string;
     title: string;
     creditHours: number;
     isScoring: boolean;
+    category: string;
   };
   type FailedRow = { row: number; message: string };
-
   const valid: ValidRow[] = [];
   const failures: FailedRow[] = [];
 
@@ -107,61 +147,87 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const cols = dataLines[i]
       .split(",")
       .map((c) => c.trim().replace(/^"|"$/g, ""));
+    const rawCode = cols[codeIdx] ?? "";
+    const rawTitle = cols[titleIdx] ?? "";
+    const rawCredits = cols[creditIdx] ?? "";
+    const rawScoring = scoringIdx >= 0 ? (cols[scoringIdx] ?? "true") : "true";
+    const rawCategory =
+      categoryIdx >= 0 ? (cols[categoryIdx] ?? "OSIS_NEW") : "OSIS_NEW";
+
+    if (!rawCode && !rawTitle) continue; // blank row
 
     const parsed = rowSchema.safeParse({
-      code: cols[codeIdx],
-      title: cols[titleIdx],
-      creditHours: cols[creditIdx],
-      isScoring: scoringIdx >= 0 ? cols[scoringIdx] : "true",
+      code: rawCode,
+      title: rawTitle,
+      creditHours: rawCredits,
+      isScoring: rawScoring,
+      category: rawCategory,
     });
-
     if (!parsed.success) {
-      failures.push({ row: rowNum, message: parsed.error.issues[0].message });
-    } else {
-      const dup = valid.find(
-        (v) => v.code.toLowerCase() === parsed.data.code.toLowerCase(),
-      );
-      if (dup) {
-        failures.push({
-          row: rowNum,
-          message: `Duplicate code "${parsed.data.code}" in this file.`,
-        });
-      } else {
-        valid.push({ row: rowNum, ...parsed.data });
-      }
+      const issue = parsed.error.issues[0];
+      const rawMap: Record<string, string> = {
+        code: rawCode,
+        title: rawTitle,
+        creditHours: rawCredits,
+        isScoring: rawScoring,
+      };
+      failures.push({
+        row: rowNum,
+        message: friendlyColError(
+          String(issue.path[0]),
+          rawMap[String(issue.path[0])] ?? "",
+          issue.message,
+        ),
+      });
+      continue;
     }
+
+    const dup = valid.find(
+      (v) => v.code.toLowerCase() === parsed.data.code.toLowerCase(),
+    );
+    if (dup) {
+      failures.push({
+        row: rowNum,
+        message: `Course code "${parsed.data.code}" appears more than once in this file. Each code must be unique.`,
+      });
+      continue;
+    }
+    valid.push({
+      ...parsed.data,
+      category: parsed.data.category ?? "OSIS_NEW",
+    });
   }
 
-  // ── Check DB for existing codes ───────────────────────────────────────────
-  const existingCodes = new Set(
-    (await db.select({ code: courses.code }).from(courses)).map((e) =>
-      e.code.toLowerCase(),
-    ),
+  // DB duplicate check
+  const existing = await db
+    .select({ code: courses.code, category: courses.category })
+    .from(courses);
+  const existingKeys = new Set(
+    existing.map((e) => `${e.code.toLowerCase()}::${e.category}`),
   );
 
   const toInsert: ValidRow[] = [];
   for (const row of valid) {
-    if (existingCodes.has(row.code.toLowerCase())) {
+    const key = `${row.code.toLowerCase()}::${row.category}`;
+    if (existingKeys.has(key)) {
       failures.push({
-        row: row.row,
-        message: `Code "${row.code}" already exists.`,
+        row: 0,
+        message: `Course "${row.code}" in category "${row.category}" already exists. Remove this row or change the category.`,
       });
     } else {
       toInsert.push(row);
     }
   }
 
-  // ── Batch insert ──────────────────────────────────────────────────────────
   let inserted = 0;
-  const BATCH = 100;
-
-  for (let i = 0; i < toInsert.length; i += BATCH) {
-    const batch = toInsert.slice(i, i + BATCH);
+  for (let i = 0; i < toInsert.length; i += 100) {
+    const batch = toInsert.slice(i, i + 100);
     try {
       await db.insert(courses).values(
         batch.map((r) => ({
           code: r.code.toUpperCase(),
           title: r.title,
+          // category: r.category,
           creditHours: r.creditHours,
           isScoring: r.isScoring,
           isActive: true,
@@ -180,10 +246,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           });
           inserted++;
         } catch (e) {
-          failures.push({
-            row: row.row,
-            message: `"${row.code}" — ${e instanceof Error ? e.message : "Insert failed"}`,
-          });
+          const msg = e instanceof Error ? e.message.toLowerCase() : "";
+          const friendly =
+            msg.includes("unique") || msg.includes("duplicate")
+              ? `Course code "${row.code}" already exists. Remove this row.`
+              : `Could not save course "${row.code}": ${e instanceof Error ? e.message : "Unknown error"}`;
+          failures.push({ row: 0, message: friendly });
         }
       }
     }

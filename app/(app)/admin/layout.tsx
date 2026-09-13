@@ -42,6 +42,7 @@ export default async function AdminLayout({
       <nav className="mb-6 flex gap-1 border-b border-gray-200">
         <AdminNavLink href="/admin/users">Users</AdminNavLink>
         <AdminNavLink href="/admin/institution">Institution</AdminNavLink>
+        <AdminNavLink href="/admin/campuses">Campuses</AdminNavLink>
         <AdminNavLink href="/admin/grading-scale">Grading scale</AdminNavLink>
         <AdminNavLink href="/admin/registrar">Registrar</AdminNavLink>
         <AdminNavLink href="/audit">Audit log</AdminNavLink>

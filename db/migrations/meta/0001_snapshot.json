@@ -1,6 +1,6 @@
 {
-  "id": "6f088ea9-6607-4bc3-ba7f-f4c2023191da",
-  "prevId": "bd257d8b-bb85-4a4b-bb30-51e3e9db1cef",
+  "id": "546b3d58-4b90-492d-98dd-f09b97421417",
+  "prevId": "829ff286-c000-4843-b321-730814784f48",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -26,6 +26,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "campus_id": {
+          "name": "campus_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         },
         "role": {
           "name": "role",
@@ -66,7 +72,21 @@
           "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "admins_campus_id_campuses_id_fk": {
+          "name": "admins_campus_id_campuses_id_fk",
+          "tableFrom": "admins",
+          "tableTo": "campuses",
+          "columnsFrom": [
+            "campus_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -193,6 +213,89 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.campuses": {
+      "name": "campuses",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "address": {
+          "name": "address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {
+        "campuses_name_unique": {
+          "name": "campuses_name_unique",
+          "columns": [
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "campuses_code_unique": {
+          "name": "campuses_code_unique",
+          "columns": [
+            {
+              "expression": "code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.courses": {
       "name": "courses",
       "schema": "",
@@ -216,6 +319,14 @@
           "primaryKey": false,
           "notNull": true
         },
+        "category": {
+          "name": "category",
+          "type": "course_category",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'OSIS_NEW'"
+        },
         "credit_hours": {
           "name": "credit_hours",
           "type": "integer",
@@ -228,13 +339,6 @@
           "primaryKey": false,
           "notNull": false,
           "default": true
-        },
-        "is_Resit": {
-          "name": "is_Resit",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": false,
-          "default": false
         },
         "is_active": {
           "name": "is_active",
@@ -311,13 +415,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "is_resit": {
-          "name": "is_resit",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
         "grade_point": {
           "name": "grade_point",
           "type": "numeric(3, 2)",
@@ -335,6 +432,13 @@
           "type": "numeric(6, 2)",
           "primaryKey": false,
           "notNull": true
+        },
+        "is_resit": {
+          "name": "is_resit",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "is_superseded": {
           "name": "is_superseded",
@@ -553,18 +657,25 @@
           "primaryKey": false,
           "notNull": true
         },
+        "programme_type": {
+          "name": "programme_type",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'DEGREE'"
+        },
+        "programme_campus": {
+          "name": "programme_campus",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "is_active": {
           "name": "is_active",
           "type": "boolean",
           "primaryKey": false,
           "notNull": false,
           "default": true
-        },
-        "programme_type": {
-          "name": "programme_type",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": true
         },
         "created_at": {
           "name": "created_at",
@@ -624,24 +735,6 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "ip_address": {
-          "name": "ip_address",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "endpoint": {
-          "name": "endpoint",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "method": {
-          "name": "method",
-          "type": "varchar(10)",
-          "primaryKey": false,
-          "notNull": true
-        },
         "key": {
           "name": "key",
           "type": "varchar(255)",
@@ -657,11 +750,17 @@
         }
       },
       "indexes": {
-        "rate_limit_attempts_key_idx": {
-          "name": "rate_limit_attempts_key_idx",
+        "rate_limit_key_idx": {
+          "name": "rate_limit_key_idx",
           "columns": [
             {
               "expression": "key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -829,6 +928,13 @@
           "primaryKey": false,
           "notNull": true
         },
+        "student_type": {
+          "name": "student_type",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'UNDERGRADUATE'"
+        },
         "date_of_birth": {
           "name": "date_of_birth",
           "type": "date",
@@ -837,17 +943,9 @@
         },
         "gender": {
           "name": "gender",
-          "type": "varchar",
+          "type": "varchar(10)",
           "primaryKey": false,
           "notNull": false
-        },
-        "student_type": {
-          "name": "student_type",
-          "type": "student_type",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'UNDERGRADUATE'"
         },
         "programme_id": {
           "name": "programme_id",
@@ -861,15 +959,21 @@
           "primaryKey": false,
           "notNull": true
         },
+        "campus_id": {
+          "name": "campus_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "entry_year": {
           "name": "entry_year",
-          "type": "varchar",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
         "graduation_year": {
           "name": "graduation_year",
-          "type": "varchar",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false
         },
@@ -925,6 +1029,19 @@
           "tableTo": "programmes",
           "columnsFrom": [
             "programme_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "students_campus_id_campuses_id_fk": {
+          "name": "students_campus_id_campuses_id_fk",
+          "tableFrom": "students",
+          "tableTo": "campuses",
+          "columnsFrom": [
+            "campus_id"
           ],
           "columnsTo": [
             "id"
@@ -994,6 +1111,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "error_message": {
+          "name": "error_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -1023,6 +1146,21 @@
           "columns": [
             {
               "expression": "student_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "transcripts_created_at_idx": {
+          "name": "transcripts_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1263,6 +1401,16 @@
     }
   },
   "enums": {
+    "public.course_category": {
+      "name": "course_category",
+      "schema": "public",
+      "values": [
+        "OSIS_OLD",
+        "OSIS_NEW",
+        "ITS",
+        "OSIS_2"
+      ]
+    },
     "public.grade": {
       "name": "grade",
       "schema": "public",
@@ -1274,7 +1422,9 @@
         "C",
         "D+",
         "D",
-        "F"
+        "E",
+        "F",
+        "IC"
       ]
     },
     "public.role": {
@@ -1301,14 +1451,6 @@
         "ACTIVE",
         "GRADUATED",
         "WITHDRAWN"
-      ]
-    },
-    "public.student_type": {
-      "name": "student_type",
-      "schema": "public",
-      "values": [
-        "UNDERGRADUATE",
-        "POSTGRADUATE"
       ]
     },
     "public.transcript_status": {

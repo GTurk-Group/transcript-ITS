@@ -14,6 +14,7 @@ export type SessionPayload = {
   adminId: string;
   email: string;
   role: Role;
+  campusId: string | null;
 };
 
 /**
@@ -23,6 +24,7 @@ export type SessionPayload = {
 export type AuthenticatedAdmin = SessionPayload & {
   iat: number;
   exp: number;
+  campusId: string | null;
 };
 
 /**

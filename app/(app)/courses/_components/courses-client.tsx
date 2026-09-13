@@ -1,5 +1,13 @@
 "use client";
 
+const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
+  OSIS_OLD: { label: "OSIS Old", color: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300" },
+  OSIS_NEW: { label: "OSIS New", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" },
+  ITS: { label: "ITS", color: "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300" },
+  OSIS_2: { label: "OSIS 2", color: "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300" },
+};
+
+
 import { useOptimistic, useState, useTransition } from "react";
 import {
   createCourseAction, updateCourseAction,
@@ -216,6 +224,15 @@ export function CoursesClient({ initial }: { initial: Course[] }) {
             </Field>
             <Field label="Course title" required>
               <Input name="title" defaultValue={editing.title} required />
+            </Field>
+            <Field label="Course category" required>
+              <select name="category" defaultValue={editing.category ?? "OSIS_NEW"}
+                className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100">
+                <option value="OSIS_NEW">OSIS New Courses</option>
+                <option value="OSIS_OLD">OSIS Old Courses</option>
+                <option value="ITS">ITS Courses</option>
+                <option value="OSIS_2">OSIS 2 Courses</option>
+              </select>
             </Field>
             <Field label="Credit hours" required
               hint="Changing this affects future grade entries only. Existing grades retain their snapshot.">

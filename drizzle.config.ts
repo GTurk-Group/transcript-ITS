@@ -14,11 +14,7 @@ import { existsSync } from "fs";
 });
 
 if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL is not set.\n" +
-      "Create a .env.local file with:\n" +
-      "  DATABASE_URL=postgresql://postgres:password@localhost:5432/tms_dev",
-  );
+  throw new Error("DATABASE_URL is not set.");
 }
 
 export default defineConfig({
@@ -31,7 +27,9 @@ export default defineConfig({
     // Local PostgreSQL has no SSL — Neon/cloud URLs already contain sslmode=require
     ssl:
       process.env.DATABASE_URL.includes("sslmode=require") ||
-      process.env.DATABASE_URL.includes("neon.tech"),
+      process.env.DATABASE_URL.includes("layerbase.com") ||
+      process.env.DATABASE_URL.includes("supabase.co") ||
+      process.env.NODE_ENV === "production",
   },
 
   verbose: true,

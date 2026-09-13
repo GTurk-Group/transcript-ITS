@@ -12,6 +12,7 @@ import { COOKIE_NAME } from "@/lib/auth/config";
 import { verifyToken } from "@/lib/auth/jwt";
 import { hashPassword } from "@/lib/auth/passwords";
 import { logAuditEvent, extractRequestMeta } from "@/lib/audit";
+// import { ca } from "zod/v4/locales";
 
 async function getSession(req: NextRequest) {
   const token = req.cookies.get(COOKIE_NAME)?.value;
@@ -22,6 +23,7 @@ const createAdminSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   role: z.enum(["SUPER_ADMIN", "ADMIN", "VIEWER"]),
+  campusId: z.string().uuid().optional().nullable(),
 });
 
 export async function POST(req: NextRequest) {
@@ -61,11 +63,13 @@ export async function POST(req: NextRequest) {
       email,
       password: await hashPassword(body.password),
       role: body.role,
+      campusId: body.campusId ?? null,
     })
     .returning({
       id: admins.id,
       email: admins.email,
       role: admins.role,
+      campusId: admins.campusId,
       isActive: admins.isActive,
       createdAt: admins.createdAt,
     });
@@ -78,6 +82,7 @@ export async function POST(req: NextRequest) {
     after: {
       email: created.email,
       role: created.role,
+      campusId: created.campusId,
       isActive: created.isActive,
     },
     ...extractRequestMeta(req.headers),

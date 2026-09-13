@@ -117,6 +117,7 @@ export async function loginAction(
     adminId: admin.id,
     email: admin.email,
     role: admin.role,
+    campusId: admin.campusId,
   });
 
   await logAuditEvent({

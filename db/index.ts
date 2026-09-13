@@ -32,7 +32,7 @@ function createDb() {
 
   const requiresSsl =
     url.includes("sslmode=require") ||
-    url.includes("neon.tech") ||
+    url.includes("layerbase.com") ||
     url.includes("supabase.co") ||
     process.env.NODE_ENV === "production";
 

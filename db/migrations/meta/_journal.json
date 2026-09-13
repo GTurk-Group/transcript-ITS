@@ -5,22 +5,36 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1778712357379,
-      "tag": "0000_goofy_living_mummy",
+      "when": 1788524732095,
+      "tag": "0000_wise_captain_marvel",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1786046881708,
-      "tag": "0001_bizarre_demogoblin",
+      "when": 1789254875499,
+      "tag": "0001_chief_thanos",
       "breakpoints": true
     },
     {
       "idx": 2,
       "version": "7",
-      "when": 1787361544754,
-      "tag": "0002_broad_lorna_dane",
+      "when": 1789263768384,
+      "tag": "0002_tough_wraith",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789264892329,
+      "tag": "0003_known_tarot",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789267937261,
+      "tag": "0004_dizzy_smiling_tiger",
       "breakpoints": true
     }
   ]

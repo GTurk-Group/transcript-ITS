@@ -18,7 +18,7 @@ import { db } from "@/db";
 import { courses, grades } from "@/db/schema";
 import { assertPermission } from "@/lib/auth/rbac";
 import { logAuditEvent, extractRequestMeta } from "@/lib/audit";
-import { parseDbError, dbErrorMessage, withAction } from "@/actions/utils";
+import { parseDbError, dbErrorMessage, withAction } from "@/lib/actions/utils";
 import type { ActionState } from "@/types/auth";
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
@@ -59,7 +59,7 @@ export type Course = typeof courses.$inferSelect;
 export async function createCourseAction(
   _prev: ActionState,
   formData: FormData,
-): Promise<ActionState> {
+): Promise<ActionState<{ id: string }>> {
   return withAction(async () => {
     const session = await assertPermission("manage_courses");
 

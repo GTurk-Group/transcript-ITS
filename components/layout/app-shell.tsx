@@ -51,6 +51,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/programmes", label: "Programmes", icon: <ProgrammeIcon />, roles: ["SUPER_ADMIN", "ADMIN"] },
       { href: "/courses", label: "Courses", icon: <CourseIcon />, roles: ["SUPER_ADMIN", "ADMIN"] },
       { href: "/semesters", label: "Semesters", icon: <CalIcon />, roles: ["SUPER_ADMIN", "ADMIN"] },
+      // { href: "/admin/campuses", label: "Campuses", icon: <CapIcon />, roles: ["SUPER_ADMIN"] },
     ],
   },
   {
@@ -215,12 +216,19 @@ export function AppShell({ session, children, pathname }: Props) {
               <p className="truncate text-xs font-semibold text-gray-900 dark:text-gray-100">
                 {session.email}
               </p>
-              <span className={[
-                "mt-0.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
-                ROLE_STYLES[session.role] ?? ROLE_STYLES.VIEWER,
-              ].join(" ")}>
-                {session.role.replace("_", " ")}
-              </span>
+              <div className="flex items-center gap-1 flex-wrap">
+                <span className={[
+                  "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                  ROLE_STYLES[session.role] ?? ROLE_STYLES.VIEWER,
+                ].join(" ")}>
+                  {session.role.replace("_", " ")}
+                </span>
+                {(session as any).campusName && (
+                  <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                    {(session as any).campusName}
+                  </span>
+                )}
+              </div>
             </div>
           </a>
 
