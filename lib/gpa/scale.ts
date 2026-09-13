@@ -20,6 +20,7 @@ export const DEFAULT_GRADE_SCALE: Readonly<Record<string, number>> = {
   "D+": 1.5,
   D: 1.0,
   E: 0.0,
+  IC: 0.0,
 };
 
 /** Ordered list of valid grade letters (descending quality). */

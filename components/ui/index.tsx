@@ -296,7 +296,7 @@ type FieldProps = {
 
 export function Field({ label, error, hint, required, className, children }: FieldProps) {
   return (
-    <div className={`space-y-1${className ? " " + className : ""}`}>
+    <div className={className ? `space-y-1 ${className}` : "space-y-1"}>
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
         {label}
         {required && <span className="ml-1 text-red-500">*</span>}
@@ -377,14 +377,13 @@ export function Tr({
 }
 
 export function Td({
-  children, className = "", onClick,
+  children, className = "",
 }: {
   children?: React.ReactNode;
   className?: string;
-  onClick?: (e: React.MouseEvent<HTMLTableCellElement>) => void;
 }) {
   return (
-    <td onClick={onClick} className={`px-4 py-3 text-gray-700 dark:text-gray-300 ${className}`}>
+    <td className={`px-4 py-3 text-gray-700 dark:text-gray-300 ${className}`}>
       {children}
     </td>
   );

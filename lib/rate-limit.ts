@@ -1,11 +1,8 @@
 /**
- * lib/rate-limit.ts — DB-backed rate limiter.
+ * lib/rate-limit.ts — DB-backed login rate limiter.
  *
- * Uses the rate_limit_attempts table (added in migration 0002).
- * If the table doesn't exist yet (migration not run), all requests
- * are allowed through — it fails OPEN, never blocking legitimate logins.
- *
- * No Redis or external service required.
+ * Stores each attempt in rate_limit_attempts table.
+ * Fails open (allows login) if the DB is unavailable or the table doesn't exist.
  */
 
 import { db } from "@/db";
@@ -13,8 +10,8 @@ import { rateLimitAttempts } from "@/db/schema";
 import { and, eq, gte, lt, count } from "drizzle-orm";
 
 type Options = {
-  max: number; // max attempts in the window
-  windowMs: number; // window size in milliseconds
+  max: number; // max attempts in window
+  windowMs: number; // window in milliseconds
 };
 
 type Result = {
@@ -23,14 +20,10 @@ type Result = {
   retryAfterSeconds: number;
 };
 
-/**
- * Check and record a rate limit attempt.
- * @param key     e.g. "login:ip:1.2.3.4"
- * @param options window size and max attempts
- */
 export async function rateLimit(
   key: string,
   options: Options,
+  ipAddress?: string,
 ): Promise<Result> {
   const { max, windowMs } = options;
   const windowStart = new Date(Date.now() - windowMs);
@@ -50,7 +43,6 @@ export async function rateLimit(
     const attempts = Number(total);
 
     if (attempts >= max) {
-      // Find oldest attempt to calculate retry-after
       const [oldest] = await db
         .select({ createdAt: rateLimitAttempts.createdAt })
         .from(rateLimitAttempts)
@@ -74,10 +66,12 @@ export async function rateLimit(
       };
     }
 
-    // Record this attempt
-    await db.insert(rateLimitAttempts).values({ key });
+    // Record attempt. Keep insert schema-compatible with the DB table.
+    await db.insert(rateLimitAttempts).values({
+      key,
+    });
 
-    // Async cleanup — remove stale entries (fire and forget)
+    // Async cleanup of stale entries
     db.delete(rateLimitAttempts)
       .where(
         and(
@@ -98,20 +92,14 @@ export async function rateLimit(
   }
 }
 
-/**
- * Clear all attempts for a key (call after successful login).
- */
 export async function clearRateLimit(key: string): Promise<void> {
   try {
     await db.delete(rateLimitAttempts).where(eq(rateLimitAttempts.key, key));
   } catch {
-    // Ignore — non-fatal
+    // Non-fatal
   }
 }
 
-/**
- * Canonical key for login rate limiting.
- */
 export function loginRateLimitKey(ip: string): string {
   return `login:ip:${ip}`;
 }

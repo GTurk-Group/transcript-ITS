@@ -55,6 +55,8 @@ export type TranscriptCourse = {
    * all GPA arithmetic by the SQL aggregation query.
    */
   isScoring: boolean;
+  /** true = resit attempt; credit hours counted double in GPA */
+  isResit: boolean;
 };
 
 // ─── Semester-level record ────────────────────────────────────────────────────
@@ -68,7 +70,7 @@ export type TranscriptSemester = {
   semesterId: string;
   year: number;
   term: "FIRST" | "SECOND";
-  /** Display label, e.g. "2022/2023 – First Semester" */
+  /** Display label, e.g. "2022/2023 – Academic Year First Semester" */
   label: string;
 
   // ── GPA statistics (from SQL aggregation, isScoring=true rows only) ──────
@@ -101,7 +103,7 @@ export type TranscriptSummary = {
   totalQualityPoints: number;
   cgpa: number;
   cgpaFormatted: string; // "3.42"
-  classification: GradeClassification;
+  classification: GradeClassification | null;
 };
 
 // ─── Entity shapes ────────────────────────────────────────────────────────────
@@ -110,10 +112,11 @@ export type TranscriptStudent = {
   id: string;
   indexNumber: string;
   firstName: string;
-  middleName: string | null;
   lastName: string;
+  middleName: string | null;
   /** firstName + middleName? + lastName */
   fullName: string;
+  studentType: "UNDERGRADUATE" | "POSTGRADUATE";
   dateOfBirth: string | null;
   gender: string | null;
   level: number;
@@ -124,6 +127,7 @@ export type TranscriptStudent = {
     id: string;
     name: string;
     code: string;
+    type: "DEGREE" | "DIPLOMA";
   };
 };
 
@@ -154,7 +158,7 @@ export type TranscriptObject = {
   transcriptNumber: string;
   /** ISO-8601 timestamp — frozen at generation time for the SHA-256 checksum */
   generatedAt: string;
-  generatedByAdminId: string;
+  generatedByAdminId?: string;
 
   // ── Entities ─────────────────────────────────────────────────────────────
   student: TranscriptStudent;

@@ -93,7 +93,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // ── 4. Read and strip comments ─────────────────────────────────────────────
+  // ── 4. Read file content ───────────────────────────────────────────────────
 
   let text: string;
   try {
@@ -112,18 +112,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const stripped = text
-    .split("\n")
-    .filter((line) => !line.trimStart().startsWith("#"))
-    .join("\n");
-
   // ── 5. Parse CSV ───────────────────────────────────────────────────────────
 
   const {
     rows: rawRows,
     missingHeaders,
     totalDataRows,
-  } = parseGradeCSV(stripped);
+  } = parseGradeCSV(text);
 
   if (missingHeaders.length > 0) {
     return NextResponse.json(

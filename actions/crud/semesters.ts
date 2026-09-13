@@ -48,7 +48,7 @@ export type Semester = typeof semesters.$inferSelect;
 export async function createSemesterAction(
   _prev: ActionState,
   formData: FormData,
-): Promise<ActionState<{ id: string }>> {
+): Promise<ActionState> {
   return withAction(async () => {
     const session = await assertPermission("manage_courses");
 
@@ -62,6 +62,8 @@ export async function createSemesterAction(
         status: "error",
         error: "Please correct the errors below.",
         fieldErrors: parsed.error.flatten().fieldErrors,
+        remaining: 0,
+        retryAfterSeconds: 0,
       };
     }
 
@@ -75,9 +77,16 @@ export async function createSemesterAction(
           status: "error",
           error: `The ${parsed.data.semester === "FIRST" ? "First" : "Second"} Semester of ${parsed.data.year} already exists.`,
           fieldErrors: { semester: ["Duplicate semester"] },
+          remaining: 0,
+          retryAfterSeconds: 0,
         };
       }
-      return { status: "error", error: dbErrorMessage(e, "semesters") };
+      return {
+        status: "error",
+        error: dbErrorMessage(e, "semesters"),
+        remaining: 0,
+        retryAfterSeconds: 0,
+      };
     }
 
     const meta = extractRequestMeta(await headers());
@@ -91,7 +100,7 @@ export async function createSemesterAction(
     });
 
     revalidatePath("/semesters");
-    return { status: "success", data: { id: record.id } };
+    return { status: "success", remaining: 0, retryAfterSeconds: 0 };
   }, "[createSemesterAction]");
 }
 

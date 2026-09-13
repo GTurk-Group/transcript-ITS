@@ -30,6 +30,7 @@ export async function signToken(payload: SessionPayload): Promise<string> {
     adminId: payload.adminId,
     email: payload.email,
     role: payload.role,
+    campusId: payload.campusId,
   })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(payload.adminId)
@@ -57,7 +58,10 @@ export async function verifyToken(
     if (
       typeof payload.adminId !== "string" ||
       typeof payload.email !== "string" ||
-      typeof payload.role !== "string"
+      typeof payload.role !== "string" ||
+      (payload.campusId !== null && typeof payload.campusId !== "string") ||
+      typeof payload.iat !== "number" ||
+      typeof payload.exp !== "number"
     ) {
       return null;
     }
@@ -66,6 +70,7 @@ export async function verifyToken(
       adminId: payload.adminId,
       email: payload.email,
       role: payload.role as AuthenticatedAdmin["role"],
+      campusId: payload.campusId ?? null,
       iat: payload.iat!,
       exp: payload.exp!,
     };

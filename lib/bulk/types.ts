@@ -18,6 +18,7 @@
 export const STUDENT_CSV_COLUMNS = [
   "indexNumber",
   "firstName",
+  "middleName",
   "lastName",
   "dateOfBirth",
   "gender",
@@ -55,9 +56,10 @@ export type ValidStudentRow = {
   rowNumber: number;
   indexNumber: string;
   firstName: string;
+  middleName?: string | null;
   lastName: string;
-  dateOfBirth: string; // ISO date string, or null if not provided
-  gender: string; // "M", "F", "O", or null if not provided
+  dateOfBirth: string | null; // ISO date string, or null if not provided
+  gender: string | null; // "M", "F", "O", or null if not provided
   programmeId: string; // resolved UUID — not in the CSV
   programmeCode: string; // kept for the audit log
   email?: string | null;

@@ -13,7 +13,7 @@ import {
 
 type Student = { id: string; indexNumber: string; firstName: string; lastName: string; programmeName: string };
 
-const IDLE: import("@/types/auth").ActionState<{ id: string }> = { status: "idle" };
+const IDLE = { status: "idle" } as const;
 
 const GRADE_COLORS: Record<string, "green" | "blue" | "amber" | "red" | "gray"> = {
   "A": "green", "B+": "green", "B": "blue", "C+": "blue",
@@ -112,7 +112,7 @@ export function GradesClient({
                   <p className="font-medium text-gray-900 dark:text-gray-100">
                     {s.firstName} {s.lastName}
                   </p>
-                  <p className="text-xs text-gray-500">{s.indexNumber} · {s.programmeName ?? "—"}</p>
+                  <p className="text-xs text-gray-500">{s.indexNumber} · {s.programmeName}</p>
                 </div>
               </button>
             ))}

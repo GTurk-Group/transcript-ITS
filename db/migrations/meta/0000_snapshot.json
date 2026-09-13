@@ -1,5 +1,5 @@
 {
-  "id": "bd257d8b-bb85-4a4b-bb30-51e3e9db1cef",
+  "id": "829ff286-c000-4843-b321-730814784f48",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -322,6 +322,13 @@
           "primaryKey": false,
           "notNull": true
         },
+        "is_resit": {
+          "name": "is_resit",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "is_superseded": {
           "name": "is_superseded",
           "type": "boolean",
@@ -413,21 +420,6 @@
             },
             {
               "expression": "semester_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "grades_is_superseded_idx": {
-          "name": "grades_is_superseded_idx",
-          "columns": [
-            {
-              "expression": "is_superseded",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -554,6 +546,19 @@
           "primaryKey": false,
           "notNull": true
         },
+        "programme_type": {
+          "name": "programme_type",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'DEGREE'"
+        },
+        "programme_campus": {
+          "name": "programme_campus",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "is_active": {
           "name": "is_active",
           "type": "boolean",
@@ -596,6 +601,21 @@
             }
           ],
           "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "programmes_campus_index": {
+          "name": "programmes_campus_index",
+          "columns": [
+            {
+              "expression": "programme_campus",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -800,11 +820,24 @@
           "primaryKey": false,
           "notNull": true
         },
+        "middle_name": {
+          "name": "middle_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "last_name": {
           "name": "last_name",
           "type": "varchar(100)",
           "primaryKey": false,
           "notNull": true
+        },
+        "student_type": {
+          "name": "student_type",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'UNDERGRADUATE'"
         },
         "date_of_birth": {
           "name": "date_of_birth",
@@ -838,7 +871,7 @@
         },
         "graduation_year": {
           "name": "graduation_year",
-          "type": "varchar",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false
         },
@@ -1264,7 +1297,9 @@
         "C",
         "D+",
         "D",
-        "F"
+        "E",
+        "F",
+        "IC"
       ]
     },
     "public.role": {

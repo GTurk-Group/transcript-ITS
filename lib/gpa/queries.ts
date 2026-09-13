@@ -52,7 +52,7 @@ const sumCreditsAttempted = sql<string>`
  */
 const sumCreditsEarned = sql<string>`
   CAST(
-    SUM(CASE WHEN ${grades.grade} != 'F' THEN ${grades.creditHours} ELSE 0 END)
+    SUM(CASE WHEN ${grades.grade} NOT IN ('E', 'IC') THEN ${grades.creditHours} ELSE 0 END)
   AS TEXT)
 `.as("credits_earned");
 
@@ -72,13 +72,13 @@ const countCourses = sql<string>`
  *
  *   SELECT
  *     g.semester_id,
- *     s.year                                                AS semester_year,
- *     s.semester                                            AS semester_term,
- *     CAST(SUM(g.computed_quality_points) AS TEXT)          AS total_quality_points,
- *     CAST(SUM(g.credit_hours) AS TEXT)                     AS credits_attempted,
- *     CAST(SUM(CASE WHEN g.grade != 'F'
- *               THEN g.credit_hours ELSE 0 END) AS TEXT)    AS credits_earned,
- *     CAST(COUNT(*) AS TEXT)                                AS course_count
+ *     s.year AS semester_year,
+ *     s.semester AS semester_term,
+ *     CAST(SUM(g.computed_quality_points) AS TEXT) AS total_quality_points,
+ *     CAST(SUM(g.credit_hours) AS TEXT) AS credits_attempted,
+ *     CAST(SUM(CASE WHEN g.grade NOT IN ('E', 'IC')
+ *               THEN g.credit_hours ELSE 0 END) AS TEXT) AS credits_earned,
+ *     CAST(COUNT(*) AS TEXT) AS course_count
  *   FROM grades g
  *   INNER JOIN courses  c ON g.course_id  = c.id  AND c.is_scoring = true
  *   INNER JOIN semesters s ON g.semester_id = s.id
@@ -88,7 +88,7 @@ const countCourses = sql<string>`
  */
 export async function querySemesterAggregate(
   studentId: string,
-  semesterId: string
+  semesterId: string,
 ): Promise<SemesterAggregateRow | null> {
   const rows = await db
     .select({
@@ -105,15 +105,12 @@ export async function querySemesterAggregate(
       courses,
       and(
         eq(grades.courseId, courses.id),
-        eq(courses.isScoring, true)           // ← non-scoring excluded at JOIN
-      )
+        eq(courses.isScoring, true), // ← non-scoring excluded at JOIN
+      ),
     )
     .innerJoin(semesters, eq(grades.semesterId, semesters.id))
     .where(
-      and(
-        eq(grades.studentId, studentId),
-        eq(grades.semesterId, semesterId)
-      )
+      and(eq(grades.studentId, studentId), eq(grades.semesterId, semesterId)),
     )
     .groupBy(grades.semesterId, semesters.year, semesters.semester);
 
@@ -139,8 +136,7 @@ export async function querySemesterAggregate(
  *     s.semester                                            AS semester_term,
  *     CAST(SUM(g.computed_quality_points) AS TEXT)          AS total_quality_points,
  *     CAST(SUM(g.credit_hours) AS TEXT)                     AS credits_attempted,
- *     CAST(SUM(CASE WHEN g.grade != 'F'
- *               THEN g.credit_hours ELSE 0 END) AS TEXT)    AS credits_earned,
+ *     CAST(SUM(CASE WHEN g.grade NOT IN ('E', 'IC') THEN g.credit_hours ELSE 0 END) AS TEXT) AS credits_earned,
  *     CAST(COUNT(*) AS TEXT)                                AS course_count
  *   FROM grades g
  *   INNER JOIN courses  c ON g.course_id  = c.id  AND c.is_scoring = true
@@ -151,7 +147,7 @@ export async function querySemesterAggregate(
  *            CASE s.semester WHEN 'FIRST' THEN 1 ELSE 2 END ASC
  */
 export async function queryCGPAAggregatesBySemester(
-  studentId: string
+  studentId: string,
 ): Promise<SemesterAggregateRow[]> {
   const rows = await db
     .select({
@@ -168,8 +164,8 @@ export async function queryCGPAAggregatesBySemester(
       courses,
       and(
         eq(grades.courseId, courses.id),
-        eq(courses.isScoring, true)           // ← non-scoring excluded at JOIN
-      )
+        eq(courses.isScoring, true), // ← non-scoring excluded at JOIN
+      ),
     )
     .innerJoin(semesters, eq(grades.semesterId, semesters.id))
     .where(eq(grades.studentId, studentId))
@@ -177,7 +173,7 @@ export async function queryCGPAAggregatesBySemester(
     .orderBy(
       semesters.year,
       // FIRST (1) before SECOND (2) within the same year
-      sql`CASE ${semesters.semester} WHEN 'FIRST' THEN 1 ELSE 2 END`
+      sql`CASE ${semesters.semester} WHEN 'FIRST' THEN 1 ELSE 2 END`,
     );
 
   return rows as SemesterAggregateRow[];

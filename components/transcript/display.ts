@@ -4,12 +4,18 @@ import { computeGPA, formatGPA } from "@/lib/gpa/compute";
 export function formatTranscriptStudentName(
   lastName: string,
   firstName: string,
+  middleName?: string | null,
 ): string {
-  return `${lastName.trim()}, ${firstName.trim()}`.toUpperCase();
+  if (middleName == "null" || middleName == "undefined") {
+    middleName = "";
+  }
+  return `${lastName.trim()}, ${firstName.trim()} ${middleName?.trim()}`.toUpperCase();
 }
 
 /** 10/08/1975 */
-export function formatTranscriptDateOfBirth(value: string | null | undefined): string {
+export function formatTranscriptDateOfBirth(
+  value: string | null | undefined,
+): string {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -21,11 +27,10 @@ export function formatTranscriptDateOfBirth(value: string | null | undefined): s
 
 /** AUG2013 - JUL2017 */
 export function formatStudyPeriod(
-  entryYear: number,
+  entryYear: string,
   graduationYear: number | string | null | undefined,
 ): string {
-  const endYear =
-    graduationYear == null ? null : String(graduationYear).trim();
+  const endYear = graduationYear == null ? null : String(graduationYear).trim();
   if (!endYear) return `AUG${entryYear}`;
   return `AUG${entryYear} - JUL${endYear}`;
 }

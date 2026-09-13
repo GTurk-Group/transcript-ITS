@@ -11,19 +11,14 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "db:up": "docker compose up -d",
-    "db:down": "docker compose down",
-    "db:logs": "docker compose logs -f postgres",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push --force",
-    "db:studio": "drizzle-kit studio",
-    "seed:admin": "tsx scripts/seed-admin.ts",
-    "seed:demo": "tsx scripts/seed-demo.ts"
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
-    "drizzle-orm": "^0.36.0",
+    "drizzle-orm": "^0.45.2",
     "jose": "^5.9.0",
     "next": "^15.0.0",
     "postgres": "^3.4.8",

@@ -116,9 +116,9 @@ export function dbErrorMessage(
  *   }, "[createProgrammeAction]");
  */
 export async function withAction<T>(
-  fn: () => Promise<ActionState<T>>,
+  fn: () => Promise<ActionState>,
   label: string,
-): Promise<ActionState<T>> {
+): Promise<ActionState> {
   try {
     return await fn();
   } catch (err) {

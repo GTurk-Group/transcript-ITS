@@ -41,30 +41,30 @@ export function SetupForm() {
                 </div>
             )}
 
-            <Field label="Full name" error={state.status === "error" ? state.fieldErrors?.name?.[0] : undefined}>
+            <Field label="Full name" error={state.status === "error" ? (state.status === "error" ? state.fieldErrors : undefined)?.name?.[0] : undefined}>
                 <input name="name" type="text" autoComplete="name" required disabled={isPending}
                     placeholder="Dr. Kofi Mensah"
-                    className={inputCls(!!state.fieldErrors?.name)} />
+                    className={inputCls(!!(state.status === "error" ? state.fieldErrors : undefined)?.name)} />
             </Field>
 
-            <Field label="Email address" error={state.status === "error" ? state.fieldErrors?.email?.[0] : undefined}>
+            <Field label="Email address" error={state.status === "error" ? (state.status === "error" ? state.fieldErrors : undefined)?.email?.[0] : undefined}>
                 <input name="email" type="email" autoComplete="email" required disabled={isPending}
                     placeholder="admin@institution.edu"
-                    className={inputCls(!!state.fieldErrors?.email)} />
+                    className={inputCls(!!(state.status === "error" ? state.fieldErrors : undefined)?.email)} />
             </Field>
 
             <Field label="Password" hint="At least 8 characters"
-                error={state.status === "error" ? state.fieldErrors?.password?.[0] : undefined}>
+                error={state.status === "error" ? (state.status === "error" ? state.fieldErrors : undefined)?.password?.[0] : undefined}>
                 <input name="password" type="password" autoComplete="new-password" required disabled={isPending}
                     placeholder="••••••••"
-                    className={inputCls(!!state.fieldErrors?.password)} />
+                    className={inputCls(!!(state.status === "error" ? state.fieldErrors : undefined)?.password)} />
             </Field>
 
             <Field label="Confirm password"
-                error={state.status === "error" ? state.fieldErrors?.confirmPassword?.[0] : undefined}>
+                error={state.status === "error" ? (state.status === "error" ? state.fieldErrors : undefined)?.confirmPassword?.[0] : undefined}>
                 <input name="confirmPassword" type="password" autoComplete="new-password" required disabled={isPending}
                     placeholder="••••••••"
-                    className={inputCls(!!state.fieldErrors?.confirmPassword)} />
+                    className={inputCls(!!(state.status === "error" ? state.fieldErrors : undefined)?.confirmPassword)} />
             </Field>
 
             <button type="submit" disabled={isPending}

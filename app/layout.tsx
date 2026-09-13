@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Transcript Management System",
-  description: "Academic transcript management for higher education institutions",
+  description: "Academic transcript management for ITS Students",
 };
 
 /**

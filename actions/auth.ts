@@ -36,7 +36,14 @@ export async function loginAction(
   const password = String(formData.get("password") ?? "");
 
   if (!email || !password) {
-    return { status: "error", error: "Email and password are required." };
+    return {
+      status: "error",
+      error: "Email and password are required.",
+      fieldErrors: {
+        email: ["Email is required"],
+        password: ["Password is required"],
+      },
+    };
   }
 
   const headerStore = await headers();
@@ -48,9 +55,8 @@ export async function loginAction(
   // ── Rate limit: 5 attempts per 15 minutes per IP ──────────────────────────
   const limit = await rateLimit(loginRateLimitKey(ip), {
     max: 5,
-    windowMs: 15 * 60 * 1000,
+    windowMs: 15 * 60 * 1000, // 15 minutes
   });
-
   if (!limit.allowed) {
     return {
       status: "error",
@@ -91,7 +97,10 @@ export async function loginAction(
   const passwordMatch = await comparePassword(password, hashToCompare);
 
   if (!admin || !passwordMatch) {
-    return { status: "error", error: "Invalid email or password." };
+    return {
+      status: "error",
+      error: "Invalid email or password.",
+    };
   }
 
   if (!admin.isActive) {
@@ -108,6 +117,7 @@ export async function loginAction(
     adminId: admin.id,
     email: admin.email,
     role: admin.role,
+    campusId: admin.campusId,
   });
 
   await logAuditEvent({
@@ -164,7 +174,11 @@ export async function changePasswordAction(
   formData: FormData,
 ): Promise<ActionState> {
   const session = await getSession();
-  if (!session) return { status: "error", error: "Not authenticated." };
+  if (!session)
+    return {
+      status: "error",
+      error: "Not authenticated.",
+    };
 
   const parsed = changePasswordSchema.safeParse({
     currentPassword: formData.get("currentPassword"),
@@ -189,11 +203,18 @@ export async function changePasswordAction(
     .where(eq(admins.id, session.adminId))
     .limit(1);
 
-  if (!admin) return { status: "error", error: "Account not found." };
+  if (!admin)
+    return {
+      status: "error",
+      error: "Account not found.",
+    };
 
   const valid = await comparePassword(currentPassword, admin.password);
   if (!valid)
-    return { status: "error", error: "Current password is incorrect." };
+    return {
+      status: "error",
+      error: "Current password is incorrect.",
+    };
 
   const hashed = await hashPassword(newPassword);
   await db
@@ -211,5 +232,5 @@ export async function changePasswordAction(
     ...extractRequestMeta(headerStore),
   });
 
-  return { status: "success" };
+  return { status: "success", data: { passwordChanged: true } };
 }

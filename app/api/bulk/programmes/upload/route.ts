@@ -12,7 +12,7 @@ import { COOKIE_NAME } from "@/lib/auth/config";
 import { can } from "@/lib/auth/permissions";
 import { db } from "@/db";
 import { programmes } from "@/db/schema";
-import { ilike, or } from "drizzle-orm";
+// import { ilike, or } from "drizzle-orm";
 import { z } from "zod";
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -21,6 +21,10 @@ const MAX_ROWS = 2_000;
 const rowSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
   code: z.string().min(1, "Code is required").max(50),
+  programmeType: z
+    .string()
+    .transform((value) => value.trim().toUpperCase())
+    .pipe(z.enum(["DEGREE", "DIPLOMA"])),
 });
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -67,7 +71,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     .map((h) => h.trim().replace(/^"|"$/g, ""));
   const nameIdx = header.indexOf("name");
   const codeIdx = header.indexOf("code");
-
+  const programmeTypeIdx = header.indexOf("programme_type");
   if (nameIdx === -1 || codeIdx === -1) {
     return NextResponse.json(
       {
@@ -80,7 +84,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const dataLines = lines.slice(1).slice(0, MAX_ROWS);
 
   // ── Validate rows ─────────────────────────────────────────────────────────
-  type ValidRow = { name: string; code: string };
+  type ValidRow = {
+    row: number;
+    name: string;
+    code: string;
+    programmeType: "DEGREE" | "DIPLOMA";
+  };
   type FailedRow = { row: number; message: string };
 
   const valid: ValidRow[] = [];
@@ -94,6 +103,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const parsed = rowSchema.safeParse({
       name: cols[nameIdx],
       code: cols[codeIdx],
+      programmeType:
+        programmeTypeIdx >= 0 ? cols[programmeTypeIdx] || "DEGREE" : "DEGREE",
     });
     if (!parsed.success) {
       failures.push({ row: rowNum, message: parsed.error.issues[0].message });
@@ -108,7 +119,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           message: `Duplicate code "${parsed.data.code}" in this file.`,
         });
       } else {
-        valid.push(parsed.data);
+        valid.push({ row: rowNum, ...parsed.data });
       }
     }
   }
@@ -124,12 +135,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   for (const row of valid) {
     if (existingCodes.has(row.code.toLowerCase())) {
       failures.push({
-        row: 0,
+        row: row.row,
         message: `Code "${row.code}" already exists in the database.`,
       });
     } else if (existingNames.has(row.name.toLowerCase())) {
       failures.push({
-        row: 0,
+        row: row.row,
         message: `Name "${row.name}" already exists in the database.`,
       });
     } else {
@@ -148,6 +159,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         batch.map((r) => ({
           name: r.name,
           code: r.code.toUpperCase(),
+          programmeType: r.programmeType,
           isActive: true,
         })),
       );
@@ -156,17 +168,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       // Fall back to per-row
       for (const row of batch) {
         try {
-          await db
-            .insert(programmes)
-            .values({
-              name: row.name,
-              code: row.code.toUpperCase(),
-              isActive: true,
-            });
+          await db.insert(programmes).values({
+            name: row.name,
+            code: row.code.toUpperCase(),
+            programmeType: row.programmeType,
+            isActive: true,
+          });
           inserted++;
         } catch (e) {
           failures.push({
-            row: 0,
+            row: row.row,
             message: `"${row.code}" — ${e instanceof Error ? e.message : "Insert failed"}`,
           });
         }

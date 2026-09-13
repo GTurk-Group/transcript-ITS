@@ -35,7 +35,10 @@ export async function recordTranscriptAction(
   const session = await assertPermission("generate_transcripts");
 
   if (!studentId || typeof studentId !== "string") {
-    return { status: "error", error: "Invalid student ID." };
+    return {
+      status: "error",
+      error: "Invalid student ID.",
+    };
   }
 
   const headerStore = await headers();
@@ -48,11 +51,20 @@ export async function recordTranscriptAction(
   if (!outcome.ok) {
     const { error } = outcome;
     if (error.code === "STUDENT_NOT_FOUND")
-      return { status: "error", error: "Student not found." };
+      return {
+        status: "error",
+        error: "Student not found.",
+      };
     if (error.code === "INSTITUTION_NOT_FOUND")
-      return { status: "error", error: error.message };
+      return {
+        status: "error",
+        error: error.message,
+      };
     if (error.code === "NO_GRADE_RECORDS")
-      return { status: "error", error: error.message };
+      return {
+        status: "error",
+        error: error.message,
+      };
     return {
       status: "error",
       error: "Failed to create transcript record. Please try again.",
@@ -76,7 +88,10 @@ export async function deleteTranscriptAction(
   const session = await assertPermission("generate_transcripts");
 
   if (!transcriptId)
-    return { status: "error", error: "Invalid transcript ID." };
+    return {
+      status: "error",
+      error: "Invalid transcript ID.",
+    };
 
   const [record] = await db
     .select()
@@ -85,7 +100,10 @@ export async function deleteTranscriptAction(
     .limit(1);
 
   if (!record)
-    return { status: "error", error: "Transcript record not found." };
+    return {
+      status: "error",
+      error: "Transcript record not found.",
+    };
 
   await db.delete(transcripts).where(eq(transcripts.id, transcriptId));
 

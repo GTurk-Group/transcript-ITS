@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { z } from "zod";
 import { eq, desc } from "drizzle-orm";
 import { db } from "@/db";
-import { students, programmes } from "@/db/schema";
+import { campuses, students, programmes } from "@/db/schema";
 import { assertPermission } from "@/lib/auth/rbac";
 import { logAuditEvent, extractRequestMeta } from "@/lib/audit";
 import type { ActionState } from "@/types/auth";
@@ -17,6 +17,10 @@ const studentSchema = z.object({
   firstName: z.string().min(1).max(100),
   lastName: z.string().min(1).max(100),
   middleName: z.string().nullable().optional(),
+  studentType: z
+    .enum(["UNDERGRADUATE", "POSTGRADUATE"])
+    .default("UNDERGRADUATE"),
+  campusId: z.string().uuid("Invalid campus ID").optional(),
   dateOfBirth: z.string().nullable().optional(),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).nullable().optional(),
   programmeId: z.string().uuid(),
@@ -59,6 +63,10 @@ export async function createStudentAction(
     firstName: str(formData, "firstName"),
     lastName: str(formData, "lastName"),
     middleName: str(formData, "middleName"),
+    studentType: (str(formData, "studentType") ?? "UNDERGRADUATE") as
+      | "UNDERGRADUATE"
+      | "POSTGRADUATE",
+    campusId: str(formData, "campusId") ?? undefined,
     dateOfBirth: str(formData, "dateOfBirth"),
     gender: str(formData, "gender"),
     programmeId: str(formData, "programmeId"),
@@ -83,6 +91,8 @@ export async function createStudentAction(
         firstName: d.firstName,
         middleName: d.middleName ?? null,
         lastName: d.lastName,
+        studentType: d.studentType ?? "UNDERGRADUATE",
+        campusId: d.campusId ?? null,
         dateOfBirth: d.dateOfBirth ?? null,
         gender: d.gender ?? null,
         programmeId: d.programmeId,
@@ -136,6 +146,10 @@ export async function updateStudentAction(
     firstName: str(formData, "firstName"),
     lastName: str(formData, "lastName"),
     middleName: str(formData, "middleName"),
+    studentType: (str(formData, "studentType") ?? "UNDERGRADUATE") as
+      | "UNDERGRADUATE"
+      | "POSTGRADUATE",
+    campusId: str(formData, "campusId") ?? undefined,
     dateOfBirth: str(formData, "dateOfBirth"),
     gender: str(formData, "gender"),
     programmeId: str(formData, "programmeId"),
@@ -177,6 +191,10 @@ export async function updateStudentAction(
         ...(fields.entryYear !== undefined && { entryYear: fields.entryYear }),
         ...(fields.status !== undefined && { status: fields.status }),
         middleName: fields.middleName ?? null,
+        ...(fields.studentType !== undefined && {
+          studentType: fields.studentType as "UNDERGRADUATE" | "POSTGRADUATE",
+        }),
+        ...(fields.campusId !== undefined && { campusId: fields.campusId }),
         dateOfBirth: fields.dateOfBirth ?? null,
         gender: fields.gender ?? null,
         graduationYear: fields.graduationYear ?? null,
@@ -289,14 +307,16 @@ export async function updateStudentStatusAction(
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
-export async function getStudents() {
-  return db
+export async function getStudents(campusId?: string | null) {
+  const query = db
     .select({
       id: students.id,
       indexNumber: students.indexNumber,
       firstName: students.firstName,
       middleName: students.middleName,
       lastName: students.lastName,
+      studentType: students.studentType,
+      campusId: students.campusId,
       dateOfBirth: students.dateOfBirth,
       gender: students.gender,
       programmeId: students.programmeId,
@@ -311,7 +331,14 @@ export async function getStudents() {
     })
     .from(students)
     .leftJoin(programmes, eq(students.programmeId, programmes.id))
-    .orderBy(desc(students.createdAt));
+    .leftJoin(campuses, eq(students.campusId, campuses.id));
+
+  if (campusId) {
+    return query
+      .where(eq(students.campusId, campusId))
+      .orderBy(desc(students.createdAt));
+  }
+  return query.orderBy(desc(students.createdAt));
 }
 
 export async function getStudentById(id: string) {
@@ -322,11 +349,13 @@ export async function getStudentById(id: string) {
       firstName: students.firstName,
       middleName: students.middleName,
       lastName: students.lastName,
+      studentType: students.studentType,
       dateOfBirth: students.dateOfBirth,
       gender: students.gender,
       programmeId: students.programmeId,
       programmeName: programmes.name,
       programmeCode: programmes.code,
+      campusId: students.campusId,
       level: students.level,
       entryYear: students.entryYear,
       graduationYear: students.graduationYear,

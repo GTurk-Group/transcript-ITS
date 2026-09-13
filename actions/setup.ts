@@ -24,6 +24,7 @@ const schema = z
     email: z.string().email("Enter a valid email address"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
+    campusId: z.string().optional(),
   })
   .refine((d) => d.password === d.confirmPassword, {
     message: "Passwords do not match",
@@ -50,6 +51,7 @@ export async function setupAdminAction(
     email: formData.get("email"),
     password: formData.get("password"),
     confirmPassword: formData.get("confirmPassword"),
+    campusId: formData.get("campusId") || undefined,
   });
 
   if (!parsed.success) {
@@ -79,6 +81,7 @@ export async function setupAdminAction(
       email: email.toLowerCase().trim(),
       password: hashed,
       role: "SUPER_ADMIN",
+      campusId: null,
       isActive: true,
     });
   } catch (err: unknown) {
