@@ -34,10 +34,10 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   const isAuthRoute = AUTH_ROUTES.some((r) => pathname.startsWith(r));
   const isProtectedRoute = PROTECTED_PREFIXES.some((r) =>
-    pathname.startsWith(r)
+    pathname.startsWith(r),
   );
   const isSuperAdminRoute = SUPER_ADMIN_PREFIXES.some((r) =>
-    pathname.startsWith(r)
+    pathname.startsWith(r),
   );
 
   // ─── Resolve session ─────────────────────────────────────────────────────
@@ -94,6 +94,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
         adminId: session.adminId,
         email: session.email,
         role: session.role,
+        campusId: session.campusId,
       });
       response.cookies.set(COOKIE_NAME, freshToken, COOKIE_OPTIONS);
     } catch (err) {
@@ -117,7 +118,5 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
  *  - public/       — static assets (images, fonts, etc.)
  */
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|public/).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|public/).*)"],
 };
