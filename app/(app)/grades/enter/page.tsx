@@ -26,6 +26,7 @@ export default async function GradeEntryPage() {
         id: courses.id,
         code: courses.code,
         title: courses.title,
+        category: courses.category,
         creditHours: courses.creditHours,
         isScoring: courses.isScoring,
       })
