@@ -142,3 +142,4 @@ dist
 seed.ts
 pre-school.ts
 migrations
+admin-seed.ts

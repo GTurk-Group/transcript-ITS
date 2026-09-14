@@ -1,5 +1,7 @@
-import type { Metadata } from "next";
+// @ts-expect-error CSS side-effect imports are processed by Next.js.
 import "./globals.css";
+import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next"
 
 export const metadata: Metadata = {
   title: "Transcript Management System",
@@ -40,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="antialiased" >
+        <Analytics />
         {children}
       </body>
     </html>

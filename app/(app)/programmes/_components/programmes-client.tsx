@@ -66,7 +66,7 @@ export function ProgrammesClient({ initial }: { initial: Programme[] }) {
     const r = await deleteProgrammeAction(deleting.id);
     setDelLoading(false); setDeleting(null);
     if (r.status === "success") toast.success("Programme deleted");
-    else if (r.status === "error") toast.error(r.error || "Failed to delete programme");
+    else if (r.status === "error") toast.error(r.error);
   }
 
   return (
@@ -160,7 +160,7 @@ export function ProgrammesClient({ initial }: { initial: Programme[] }) {
         footer={<><Button variant="ghost" onClick={() => setShowCreate(false)}>Cancel</Button><Button variant="primary" type="submit" form="create-prog-form">Create</Button></>}>
         <form id="create-prog-form" action={handleCreate} className="space-y-4">
           <Field label="Programme name" required><Input name="name" placeholder="Bachelor of Science in Computer Science" required /></Field>
-          <Field label="Programme code" required hint="Uppercase, unique e.g. BSC-CS"><Input name="code" placeholder="BSC-CS" required /></Field>
+          <Field label="Programme code" required hint="Same code can appear with different names (and vice versa). Only the name+code combination must be unique."><Input name="code" placeholder="BSC-CS" required /></Field>
           <Field label="Programme type" required hint="Determines classification scale on transcripts">
             <select name="programmeType" defaultValue="DEGREE"
               className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100">

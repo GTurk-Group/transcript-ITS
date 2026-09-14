@@ -1,10 +1,10 @@
 "use client";
 
 /** Never render "undefined" or "null" - return empty string instead */
-function safeStr(v: string | null | undefined): string {
-  if (v == null || v === "undefined" || v === "null" || v.trim() === "") return "";
-  return v.trim();
-}
+// function safeStr(v: string | null | undefined): string {
+//   if (v == null || v === "undefined" || v === "null" || v.trim() === "") return "";
+//   return v.trim();
+// }
 
 /**
  * TranscriptPreview — UEW official transcript layout.
@@ -23,7 +23,7 @@ import type {
   TranscriptCourse,
 } from "@/lib/transcript/types";
 import {
-  formatTranscriptStudentName,
+  // formatTranscriptStudentName,
   formatTranscriptDateOfBirth,
   formatStudyPeriod,
   formatTranscriptPrintedOn,
@@ -66,7 +66,7 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
     registrar,
     summary,
     semesters,
-    transcriptNumber,
+    // transcriptNumber,
     generatedAt,
   } = transcript;
 
@@ -85,11 +85,11 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
     });
 
   const printedOn = formatTranscriptPrintedOn(generatedAt);
-  const studentName = formatTranscriptStudentName(
-    student.lastName,
-    student.firstName,
-    student.middleName,
-  );
+  // const studentName = formatTranscriptStudentName(
+  //   student.lastName,
+  //   student.firstName,
+  //   student.middleName,
+  // );
 
   const fullName = [
     student.lastName + ", ",
@@ -109,7 +109,6 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
   return (
     <>
       <PrintStyles />
-
       <div id="transcript-print-root">
         <div
           id="transcript-document"
@@ -139,7 +138,6 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
             aria-hidden
           >
           </div>
-
           <table
             style={{
               width: "100%",
@@ -163,12 +161,12 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                     }}
                   >
                     {/* Logo */}
-                    <div style={{ flexShrink: 0 }}>
+                    <div style={{ flexShrink: 0, marginLeft: "10px" }}>
                       <Image
                         src={universityLogo}
                         alt="University crest"
-                        width={120}
-                        height={120}
+                        width={100}
+                        height={100}
                         priority
                       />
                     </div>
@@ -177,7 +175,7 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                     <div style={{ flex: 1, marginLeft: "-100px" }}>
                       <div
                         style={{
-                          fontSize: "25px",
+                          fontSize: "20px",
                           fontWeight: 700,
                           letterSpacing: "0.4px",
                           lineHeight: 1.2,
@@ -190,7 +188,7 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                       </div>
                       <div
                         style={{
-                          fontSize: "17px",
+                          fontSize: "15px",
                           fontWeight: 700,
                           lineHeight: 1.3,
                           marginBottom: "2px",
@@ -199,10 +197,10 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                       >
                         Academic Affairs Office
                       </div>
-                      <div style={{ fontSize: "12px", lineHeight: 1.4, textAlign: "center" }}>
+                      <div style={{ fontSize: "11px", lineHeight: 1.4, textAlign: "center" }}>
                         {institution.address ?? UEW_CONTACT.poBox}
                       </div>
-                      <div style={{ fontSize: "12px", lineHeight: 1.4, textAlign: "center" }}>
+                      <div style={{ fontSize: "11px", lineHeight: 1.4, textAlign: "center" }}>
                         Email: {UEW_CONTACT.email} &nbsp;|&nbsp; Website:{" "}
                         {UEW_CONTACT.website}
                       </div>
@@ -215,9 +213,9 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                       background: "#7fb1e8",
                       color: "white",
                       textAlign: "center",
-                      fontSize: "16px",
+                      fontSize: "14px",
                       fontWeight: 700,
-                      padding: "5px",
+                      padding: "3px",
                       marginBottom: "8px",
                       letterSpacing: "0.5px",
                       textTransform: "uppercase",
@@ -230,7 +228,7 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                   <div
                     style={{
                       fontSize: "11px",
-                      marginBottom: "6px",
+                      marginBottom: "5px",
                       width: "100%",
                     }}
                   >
@@ -272,7 +270,7 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                     {/* Row 3: Programme (single line, never wraps) */}
                     <div style={{ ...infoLineRowStyle, width: "100%", marginTop: "4px", whiteSpace: "nowrap" }}>
                       <span style={infoLineLabelStyle}>Programme:</span>
-                      <span style={{ whiteSpace: "nowrap" }}>{student.programme.name}</span>
+                      <span style={{ whiteSpace: "nowrap", textTransform: "uppercase" }}>{student.programme.name}</span>
                     </div>
                   </div>
 
@@ -282,10 +280,10 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                       background: "#1762bd",
                       color: "white",
                       textAlign: "center",
-                      fontSize: "12px",
+                      fontSize: "11px",
                       fontWeight: 700,
-                      padding: "4px",
-                      margin: "4px 0 6px",
+                      padding: "3px",
+                      margin: "4px 0 1px",
                     }}
                   >
                     A BLACK AND WHITE DOCUMENT IS NOT OFFICIAL
@@ -325,7 +323,7 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                       ))}
 
                       {/* ─── Signature block – only on the last page ─── */}
-                      <div className="w-full" style={{ marginTop: "80px" }}>
+                      <div className="w-full" style={{ marginTop: "70px" }}>
                         <div
                           style={{
                             display: "flex",
@@ -408,7 +406,6 @@ export function TranscriptPreview({ transcript }: TranscriptPreviewProps) {
                             Printed on: {printedOn}
                             {/* <br /> */}
                             {/* {transcriptNumber} */}
-
                           </span>
                         </div>
                       </div>
@@ -450,7 +447,7 @@ function SemesterBlock({
           width: "100%",
           background: "transparent",
           color: "#000",
-          padding: "4px 0 2px",
+          padding: "1px 0 1px",
           fontSize: "12px",
           fontWeight: 700,
           textAlign: "left",
@@ -460,7 +457,7 @@ function SemesterBlock({
           justifyContent: "space-between",
           alignItems: "center",
           borderBottom: "1px solid #87afff",
-          marginBottom: "4px",
+          marginBottom: "1px",
         }}
         aria-expanded={!collapsed}
       >
@@ -481,14 +478,14 @@ function SemesterBlock({
         >
           <thead>
             <tr>
-              <th style={{ ...thBase, width: "72px", textAlign: "center" }}>
+              <th style={{ ...thBase, width: "70px", textAlign: "center" }}>
                 Course Code
               </th>
               <th style={{ ...thBase, textAlign: "left" }}>Course Title</th>
               <th style={{ ...thBase, width: "44px", textAlign: "center" }}>
                 Credits
               </th>
-              <th style={{ ...thBase, width: "32px", textAlign: "center" }}>
+              <th style={{ ...thBase, width: "33px", textAlign: "center" }}>
                 Grade
               </th>
               <th style={{ ...thBase, width: "54px", textAlign: "center" }}>
@@ -503,13 +500,13 @@ function SemesterBlock({
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={5} style={{ ...tdTotals, padding: "4px 8px" }}>
+              <td colSpan={5} style={{ ...tdTotals, padding: "1px 1px" }}>
                 <div
                   style={{
                     display: "flex",
                     flexWrap: "wrap",
                     gap: "12px 50px", // horizontal and vertical spacing
-                    fontSize: "10px",
+                    fontSize: "10.5px",
                     fontWeight: 700,
                     justifyContent: "center",
                     alignItems: "center",
@@ -530,7 +527,7 @@ function SemesterBlock({
         {showClassDesignation && (
           <div
             style={{
-              marginTop: "6px",
+              marginTop: "4px",
               fontSize: "11px",
               fontWeight: 400,
             }}
@@ -593,7 +590,6 @@ function PrintStyles() {
               font-size: 8px;
               color: #000;
               font-family: Poppins, Helvetica, sans-serif;
-              content: "Page " counter(page) " of " counter(pages);
               padding-bottom: 10px;
             }
           
@@ -645,7 +641,7 @@ const thBase: React.CSSProperties = {
   background: "#d4d4d4",
   fontSize: "9px",
   fontWeight: 700,
-  padding: "1px 4px",
+  padding: "1px 1.5px",
   border: "0.5px solid #cfcdcd",
   color: "#000",
 };

@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { z } from "zod";
 import { eq, desc } from "drizzle-orm";
 import { db } from "@/db";
-import { campuses, students, programmes } from "@/db/schema";
+import { students, programmes, campuses } from "@/db/schema";
 import { assertPermission } from "@/lib/auth/rbac";
 import { logAuditEvent, extractRequestMeta } from "@/lib/audit";
 import type { ActionState } from "@/types/auth";
@@ -308,7 +308,7 @@ export async function updateStudentStatusAction(
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
 export async function getStudents(campusId?: string | null) {
-  const query = db
+  const base = db
     .select({
       id: students.id,
       indexNumber: students.indexNumber,
@@ -317,6 +317,7 @@ export async function getStudents(campusId?: string | null) {
       lastName: students.lastName,
       studentType: students.studentType,
       campusId: students.campusId,
+      campusName: campuses.name,
       dateOfBirth: students.dateOfBirth,
       gender: students.gender,
       programmeId: students.programmeId,
@@ -333,15 +334,19 @@ export async function getStudents(campusId?: string | null) {
     .leftJoin(programmes, eq(students.programmeId, programmes.id))
     .leftJoin(campuses, eq(students.campusId, campuses.id));
 
+  // Campus filter: SUPER_ADMIN passes null = no filter; others are restricted
   if (campusId) {
-    return query
+    return base
       .where(eq(students.campusId, campusId))
       .orderBy(desc(students.createdAt));
   }
-  return query.orderBy(desc(students.createdAt));
+  return base.orderBy(desc(students.createdAt));
 }
 
-export async function getStudentById(id: string) {
+export async function getStudentById(
+  id: string,
+  campusId?: string | null, // pass session.campusId to enforce campus access
+) {
   const [row] = await db
     .select({
       id: students.id,
@@ -350,12 +355,12 @@ export async function getStudentById(id: string) {
       middleName: students.middleName,
       lastName: students.lastName,
       studentType: students.studentType,
+      campusId: students.campusId,
       dateOfBirth: students.dateOfBirth,
       gender: students.gender,
       programmeId: students.programmeId,
       programmeName: programmes.name,
       programmeCode: programmes.code,
-      campusId: students.campusId,
       level: students.level,
       entryYear: students.entryYear,
       graduationYear: students.graduationYear,
@@ -368,5 +373,11 @@ export async function getStudentById(id: string) {
     .leftJoin(programmes, eq(students.programmeId, programmes.id))
     .where(eq(students.id, id))
     .limit(1);
-  return row ?? null;
+
+  if (!row) return null;
+
+  // Campus enforcement: if a campusId is given, block cross-campus access
+  if (campusId && row.campusId !== campusId) return null;
+
+  return row;
 }
