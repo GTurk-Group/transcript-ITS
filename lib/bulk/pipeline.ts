@@ -24,6 +24,7 @@ async function insertBatch(batch: ValidStudentRow[]): Promise<RowFailure[]> {
         email: row.email ?? null,
         phoneNumber: row.phoneNumber ?? null,
         status: "ACTIVE" as const,
+        campusId: row.campusId ?? null,
       })),
     );
     return []; // no failures

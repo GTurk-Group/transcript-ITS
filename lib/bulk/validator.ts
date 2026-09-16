@@ -23,7 +23,7 @@ import type { RawStudentRow, ValidStudentRow, RowFailure } from "./types";
 
 // ─── Field-level schema ───────────────────────────────────────────────────────
 
-const VALID_LEVELS = [100, 200, 300, 400, 500, 600, 700, 800] as const;
+const VALID_LEVELS = [100, 200, 300, 400, 500, 600, 700, 800, 900] as const;
 const currentYear = new Date().getFullYear();
 
 const rowSchema = z.object({
@@ -95,36 +95,18 @@ const rowSchema = z.object({
 
   entryYear: z
     .string({ required_error: "Entry year is required" })
-    .min(1, "Entry year is required")
-    .pipe(
-      z.coerce
-        .number({
-          invalid_type_error: "Entry year must be a 4-digit year (e.g. 2021)",
-        })
-        .int()
-        .min(1990, "Entry year must be 1990 or later")
-        .max(
-          currentYear + 1,
-          `Entry year cannot be later than ${currentYear + 1}`,
-        ),
-    ),
+    .min(4, "Entry year must be 4 digits (e.g. 2023)"),
 
   graduationYear: z
     .string()
     .optional()
+    .transform((v) => (v === undefined || v.trim() === "" ? null : v.trim())),
+  campusId: z
+    .string()
+    .optional()
     .transform((v) => (v === undefined || v.trim() === "" ? null : v.trim()))
     .pipe(
-      z.union([
-        z.null(),
-        z.coerce
-          .number({
-            invalid_type_error:
-              "Graduation year must be a 4-digit year (e.g. 2025)",
-          })
-          .int()
-          .min(1990, "Graduation year must be 1990 or later")
-          .max(2100, "Graduation year seems too far in the future"),
-      ]),
+      z.union([z.null(), z.string().uuid("Campus ID must be a valid UUID")]),
     ),
 });
 
@@ -201,6 +183,7 @@ export function validateRow(
     level: raw.level,
     entryYear: raw.entryYear,
     graduationYear: raw.graduationYear,
+    campusId: raw.campusId,
   });
 
   if (!parsed.success) {
@@ -261,6 +244,7 @@ export function validateRow(
       level: data.level,
       entryYear: data.entryYear,
       graduationYear: data.graduationYear ?? null,
+      campusId: data.campusId ?? null,
     },
   };
 }
@@ -305,6 +289,7 @@ export async function validateBatch(rawRows: RawStudentRow[]): Promise<{
           level: raw.level,
           entryYear: raw.entryYear,
           graduationYear: raw.graduationYear,
+          campusId: raw.campusId,
         },
         errors: result.errors,
       });
