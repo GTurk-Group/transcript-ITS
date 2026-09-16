@@ -25,14 +25,18 @@ const studentSchema = z.object({
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).nullable().optional(),
   programmeId: z.string().uuid(),
   level: z.coerce.number().int().min(100).max(900),
-  entryYear: z.coerce.number().int().min(1990).max(2099),
-  graduationYear: z.coerce
-    .number()
-    .int()
-    .min(1990)
-    .max(2099)
+  entryYear: z.string().max(15).min(4),
+  graduationYear: z
+    .string()
+    .max(15)
+    .min(4)
     .nullable()
-    .optional(),
+    .optional()
+    .transform((val) => {
+      if (val === null || val === undefined || val.trim() === "") {
+        return null;
+      }
+    }),
   email: z.string().email().nullable().optional(),
   phoneNumber: z.string().nullable().optional(),
 });
