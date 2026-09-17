@@ -41,7 +41,6 @@ const rowSchema = z.object({
 
   middleName: z
     .string()
-    .min(1, "Middle name must be at least 1 character")
     .max(100, "Middle name must be at most 100 characters")
     .optional()
     .transform((v) => (v === undefined || v.trim() === "" ? null : v.trim())),
@@ -55,7 +54,13 @@ const rowSchema = z.object({
   dateOfBirth: z
     .string()
     .optional()
-    .transform((v) => (v === undefined || v.trim() === "" ? null : v.trim()))
+    .transform((v) => {
+      if (v === undefined) return null;
+      const t = v.trim();
+      // treat the "zero date" and any 0000-00-00 variant as null
+      if (t === "" || /^0{4}-0{2}-0{2}$/.test(t)) return null;
+      return t;
+    })
     .pipe(
       z.union([
         z.null(),
@@ -71,7 +76,15 @@ const rowSchema = z.object({
   gender: z
     .string()
     .optional()
-    .transform((v) => (v === undefined || v.trim() === "" ? null : v.trim()))
+    .transform((v) => {
+      if (v === undefined) return null;
+      const t = v.trim().toUpperCase();
+      if (t === "") return null;
+      if (t === "MALE" || t === "M") return "M";
+      if (t === "FEMALE" || t === "F") return "F";
+      if (t === "OTHER" || t === "O") return "O";
+      return t; // falls through to the enum check → gives a proper message
+    })
     .pipe(z.union([z.null(), z.enum(["M", "F", "O"])])),
 
   programmeCode: z
