@@ -132,6 +132,9 @@ const HEADER_MAP: Record<string, StudentCSVColumn> = {
   lastname: "lastName",
   last: "lastName",
   surname: "lastName",
+  dateofbirth: "dateOfBirth",
+  dob: "dateOfBirth",
+  gender: "gender",
   programmecode: "programmeCode",
   programme: "programmeCode",
   program: "programmeCode",
@@ -174,6 +177,10 @@ export function parseStudentCSV(
     "programmeCode",
     "level",
     "entryYear",
+    "graduationYear",
+    "dateOfBirth",
+    "gender",
+    "campusId",
   ],
 ): ParseResult {
   const allRows = parseCSV(text);

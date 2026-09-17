@@ -18,7 +18,7 @@
  */
 
 import { useState, useRef, useCallback } from "react";
-import { formatUploadSummary }  from "@/lib/bulk/report";
+import { formatUploadSummary } from "@/lib/bulk/report";
 import type { BulkUploadResult, RowFailure } from "@/lib/bulk/types";
 
 type UploadState =
@@ -120,9 +120,9 @@ export function BulkUploadForm() {
     if (!res.ok) { alert("Could not generate error report."); return; }
 
     const blob = await res.blob();
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement("a");
-    a.href     = url;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
     a.download = `upload-errors-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
@@ -249,15 +249,15 @@ function ResultPanel({
   onDownloadErrors,
   onReset,
 }: {
-  result:          BulkUploadResult;
-  showAllErrors:   boolean;
-  onToggleErrors:  () => void;
+  result: BulkUploadResult;
+  showAllErrors: boolean;
+  onToggleErrors: () => void;
   onDownloadErrors: () => void;
-  onReset:         () => void;
+  onReset: () => void;
 }) {
   const hasFailures = result.failureCount > 0;
-  const hasSuccess  = result.successCount > 0;
-  const allFailed   = result.successCount === 0 && result.failureCount > 0;
+  const hasSuccess = result.successCount > 0;
+  const allFailed = result.successCount === 0 && result.failureCount > 0;
 
   const PREVIEW_ROWS = 5;
   const visibleFailures = showAllErrors
@@ -272,8 +272,8 @@ function ResultPanel({
         allFailed
           ? "border-red-200 bg-red-50"
           : hasFailures
-          ? "border-amber-200 bg-amber-50"
-          : "border-green-200 bg-green-50",
+            ? "border-amber-200 bg-amber-50"
+            : "border-green-200 bg-green-50",
       ].join(" ")}>
         <span className="mt-0.5 text-lg">
           {allFailed ? "✗" : hasFailures ? "⚠" : "✓"}
@@ -296,9 +296,9 @@ function ResultPanel({
 
       {/* Stat cards */}
       <div className="grid grid-cols-3 gap-3">
-        <StatCard label="Total rows"   value={result.totalRows}    color="gray" />
-        <StatCard label="Imported"     value={result.successCount} color="green" />
-        <StatCard label="Failed"       value={result.failureCount} color={result.failureCount > 0 ? "red" : "gray"} />
+        <StatCard label="Total rows" value={result.totalRows} color="gray" />
+        <StatCard label="Imported" value={result.successCount} color="green" />
+        <StatCard label="Failed" value={result.failureCount} color={result.failureCount > 0 ? "red" : "gray"} />
       </div>
 
       {/* Failure table */}
@@ -396,9 +396,9 @@ function ResultPanel({
 
 function StatCard({ label, value, color }: { label: string; value: number; color: "gray" | "green" | "red" }) {
   const colors = {
-    gray:  "bg-gray-50  border-gray-200  text-gray-900",
+    gray: "bg-gray-50  border-gray-200  text-gray-900",
     green: "bg-green-50 border-green-200 text-green-800",
-    red:   "bg-red-50   border-red-200   text-red-800",
+    red: "bg-red-50   border-red-200   text-red-800",
   };
   return (
     <div className={`rounded-lg border p-3 text-center ${colors[color]}`}>

@@ -9,8 +9,8 @@
 
 import type { Metadata } from "next";
 import { requirePermission } from "@/lib/auth/rbac";
-import { BulkUploadForm }    from "./_components/upload-form";
-import { getProgrammes }     from "@/actions/crud/programmes";
+import { BulkUploadForm } from "./_components/upload-form";
+import { getProgrammes } from "@/actions/crud/programmes";
 import { TemplateDownloadButton } from "@/components/templates/template-download-button";
 
 export const metadata: Metadata = {
@@ -70,12 +70,14 @@ export default async function BulkUploadPage() {
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white">
               {[
-                ["indexNumber",    true,  "Unique student identifier, e.g. CS/2021/001"],
-                ["firstName",      true,  "Student's first name"],
-                ["lastName",       true,  "Student's last (family) name"],
-                ["programmeCode",  true,  `Must match an active programme: ${activeCodes.join(", ")}${activeCodes.length < programmes.filter(p=>p.isActive).length ? "…" : ""}`],
-                ["level",          true,  "One of: 100, 200, 300, 400, 500, 600, 700, 800"],
-                ["entryYear",      true,  "4-digit year of admission, e.g. 2021"],
+                ["indexNumber", true, "Unique student identifier, e.g. CS/2021/001"],
+                ["firstName", true, "Student's first name"],
+                ["lastName", true, "Student's last (family) name"],
+                ["programmeCode", true, `Must match an active programme: ${activeCodes.join(", ")}${activeCodes.length < programmes.filter(p => p.isActive).length ? "…" : ""}`],
+                ["level", true, "One of: 100, 200, 300, 400, 500, 600, 700, 800"],
+                ["dateOfBirth", false, "YYYY-MM-DD format, e.g. 1995-08-25"],
+                ["gender", false, "M, F, or O (other)"],
+                ["entryYear", true, "4-digit year of admission, e.g. 2021"],
                 ["graduationYear", false, "4-digit year, e.g. 2025 — leave blank for current students"],
               ].map(([col, req, note]) => (
                 <tr key={col as string}>
