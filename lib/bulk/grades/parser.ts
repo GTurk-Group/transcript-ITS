@@ -112,6 +112,7 @@ const GRADE_HEADER_MAP: Record<string, GradeCSVColumn> = {
   year: "year",
   academicyear: "year",
   sessionyear: "year",
+  semester_year: "year",
 
   // grade variants
   grade: "grade",
