@@ -107,8 +107,8 @@ export const programmes = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (t) => [
-    uniqueIndex("programmes_name_unique").on(t.name),
-    uniqueIndex("programmes_code_unique").on(t.code),
+    uniqueIndex("programmes_name_code_unique").on(t.name, t.code),
+    // uniqueIndex("programmes_code_unique").on(t.code),
   ],
 );
 
@@ -130,8 +130,8 @@ export const students = pgTable(
       .notNull(),
     level: integer("level").notNull(),
     campusId: uuid("campus_id").references(() => campuses.id),
-    entryYear: integer("entry_year").notNull(),
-    graduationYear: integer("graduation_year"),
+    entryYear: varchar("entry_year", { length: 15 }).notNull(),
+    graduationYear: varchar("graduation_year", { length: 15 }),
     status: studentStatusEnum("status").default("ACTIVE").notNull(),
     email: varchar("email", { length: 255 }),
     phoneNumber: varchar("phone_number", { length: 50 }),

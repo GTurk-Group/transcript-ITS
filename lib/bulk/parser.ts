@@ -132,17 +132,26 @@ const HEADER_MAP: Record<string, StudentCSVColumn> = {
   lastname: "lastName",
   last: "lastName",
   surname: "lastName",
+  dateofbirth: "dateOfBirth",
+  dob: "dateOfBirth",
+  gender: "gender",
   programmecode: "programmeCode",
   programme: "programmeCode",
   program: "programmeCode",
   programcode: "programmeCode",
   level: "level",
+  phone: "phoneNumber",
+  phonenumber: "phoneNumber",
+  email: "email",
   entryyear: "entryYear",
   year: "entryYear",
   admissionyear: "entryYear",
   graduationyear: "graduationYear",
   gradyear: "graduationYear",
   completionyear: "graduationYear",
+  campusid: "campusId",
+  campus: "campusId",
+  campuscode: "campusId",
 };
 
 type ParseResult = {
@@ -170,7 +179,13 @@ export function parseStudentCSV(
     "lastName",
     "programmeCode",
     "level",
+    "phoneNumber",
+    "email",
     "entryYear",
+    "graduationYear",
+    "dateOfBirth",
+    "gender",
+    "campusId",
   ],
 ): ParseResult {
   const allRows = parseCSV(text);
@@ -248,6 +263,7 @@ export function parseStudentCSV(
       level: mapped.level,
       entryYear: mapped.entryYear,
       graduationYear: mapped.graduationYear,
+      campusId: mapped.campusId,
     } satisfies RawStudentRow;
   });
 
@@ -278,6 +294,7 @@ export function generateStudentCSVTemplate(): string {
     "level",
     "entryYear",
     "graduationYear",
+    "campusId",
   ].join(",");
 
   const exampleRow = [

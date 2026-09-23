@@ -9,7 +9,7 @@ import type { Metadata } from "next";
 import { requireAuth, can } from "@/lib/auth/rbac";
 import { db } from "@/db";
 import { students, transcripts, programmes } from "@/db/schema";
-import { eq, ilike, or, desc } from "drizzle-orm";
+import { and, eq, ilike, or, desc } from "drizzle-orm";
 import { assembleTranscript } from "@/lib/transcript";
 import { TranscriptPreview } from "@/components/transcript/preview";
 import { TranscriptActionBar } from "@/components/transcript/action-bar";
@@ -34,6 +34,18 @@ export default async function TranscriptsPage({ searchParams }: PageProps) {
 
   let matched: StudentRow[] = [];
   if (query) {
+    // Build campus-aware search filter
+    const searchCondition = or(
+      ilike(students.indexNumber, `%${query}%`),
+      ilike(students.firstName, `%${query}%`),
+      ilike(students.lastName, `%${query}%`),
+    );
+
+    // SUPER_ADMIN searches all campuses; others only their campus
+    const campusCondition = session.role !== "SUPER_ADMIN" && session.campusId
+      ? eq(students.campusId, session.campusId)
+      : undefined;
+
     matched = await db
       .select({
         id: students.id,
@@ -45,11 +57,7 @@ export default async function TranscriptsPage({ searchParams }: PageProps) {
       })
       .from(students)
       .leftJoin(programmes, eq(students.programmeId, programmes.id))
-      .where(or(
-        ilike(students.indexNumber, `%${query}%`),
-        ilike(students.firstName, `%${query}%`),
-        ilike(students.lastName, `%${query}%`),
-      ))
+      .where(campusCondition ? and(searchCondition, campusCondition) : searchCondition)
       .limit(10);
   }
 

@@ -15,8 +15,8 @@
  *
  * Auth: requires bulk_upload permission (ADMIN+).
  *
- * Max file size: 5 MB (enforced by Next.js config — see next.config.ts).
- * Max rows: 5,000 per upload (enforced here — larger batches should use
+ * Max file size: 80 MB (enforced by Next.js config — see next.config.ts).
+ * Max rows: 1,000,000 per upload (enforced here — larger batches should use
  *           background jobs).
  */
 
@@ -30,8 +30,8 @@ import { validateBatch } from "@/lib/bulk/validator";
 import { runStudentBulkInsertPipeline } from "@/lib/bulk/pipeline";
 import type { BulkUploadResult } from "@/lib/bulk/types";
 
-const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
-const MAX_ROW_COUNT = 5_000;
+const MAX_FILE_SIZE_BYTES = 80 * 1024 * 1024; // 80 MB
+const MAX_ROW_COUNT = 1_000_000;
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   // ── 1. Auth ────────────────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (file.size > MAX_FILE_SIZE_BYTES) {
     return NextResponse.json(
       {
-        error: `File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum size is 5 MB.`,
+        error: `File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum size is 80 MB.`,
       },
       { status: 400 },
     );

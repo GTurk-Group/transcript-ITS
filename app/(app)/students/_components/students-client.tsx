@@ -14,7 +14,7 @@ import {
 
 type Student = {
   id: string; indexNumber: string; firstName: string; lastName: string;
-  level: number; entryYear: number; graduationYear?: number | null;
+  level: number; entryYear: string; graduationYear?: string | null;
   status: string; programmeId: string; programmeName: string;
   dateOfBirth?: string | null; gender?: string | null;
   email?: string | null; phoneNumber?: string | null;

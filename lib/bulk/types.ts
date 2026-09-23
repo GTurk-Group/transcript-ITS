@@ -28,6 +28,7 @@ export const STUDENT_CSV_COLUMNS = [
   "level",
   "entryYear",
   "graduationYear",
+  "campusId",
 ] as const;
 
 export type StudentCSVColumn = (typeof STUDENT_CSV_COLUMNS)[number];
@@ -65,8 +66,9 @@ export type ValidStudentRow = {
   email?: string | null;
   phoneNumber?: string | null;
   level: number;
-  entryYear: number;
-  graduationYear: number | null;
+  entryYear: string;
+  graduationYear: string | null;
+  campusId?: string | null;
 };
 
 // ─── Per-row result ───────────────────────────────────────────────────────────

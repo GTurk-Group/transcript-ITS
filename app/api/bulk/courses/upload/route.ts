@@ -39,6 +39,39 @@ function friendlyColError(field: string, raw: string, msg: string): string {
   return `${labels[field] ?? field} "${raw || "(empty)"}" — ${msg}`;
 }
 
+/**
+ * Parse a single CSV line respecting quoted fields.
+ * Handles commas inside quotes and escaped quotes ("").
+ */
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        // Escaped quote inside a quoted field
+        current += '"';
+        i++;
+      } else {
+        // Toggle quote state
+        inQuotes = !inQuotes;
+      }
+    } else if (char === "," && !inQuotes) {
+      result.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  result.push(current.trim());
+  return result;
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const token = req.cookies.get(COOKIE_NAME)?.value;
   const session = token ? await verifyToken(token) : null;
@@ -100,10 +133,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       { status: 400 },
     );
 
-  const header = lines[0]
-    .toLowerCase()
-    .split(",")
-    .map((h) => h.trim().replace(/^"|"$/g, ""));
+  const header = parseCSVLine(lines[0].toLowerCase()).map((h) => h.replace(/^"|"$/g, ""));
   const codeIdx = header.indexOf("code");
   const titleIdx = header.indexOf("title");
   const creditIdx = header.findIndex((h) =>
@@ -136,7 +166,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     title: string;
     creditHours: number;
     isScoring: boolean;
-    category: string;
+    category: "OSIS_OLD" | "OSIS_NEW" | "ITS" | "OSIS_2";
+    rowNum: number;
   };
   type FailedRow = { row: number; message: string };
   const valid: ValidRow[] = [];
@@ -144,9 +175,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   for (let i = 0; i < dataLines.length; i++) {
     const rowNum = i + 2;
-    const cols = dataLines[i]
-      .split(",")
-      .map((c) => c.trim().replace(/^"|"$/g, ""));
+    const cols = parseCSVLine(dataLines[i]);
     const rawCode = cols[codeIdx] ?? "";
     const rawTitle = cols[titleIdx] ?? "";
     const rawCredits = cols[creditIdx] ?? "";
@@ -195,6 +224,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     valid.push({
       ...parsed.data,
       category: parsed.data.category ?? "OSIS_NEW",
+      rowNum,
     });
   }
 
@@ -227,7 +257,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         batch.map((r) => ({
           code: r.code.toUpperCase(),
           title: r.title,
-          // category: r.category,
+          category: r.category,
           creditHours: r.creditHours,
           isScoring: r.isScoring,
           isActive: true,
@@ -240,6 +270,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           await db.insert(courses).values({
             code: row.code.toUpperCase(),
             title: row.title,
+            category: row.category,
             creditHours: row.creditHours,
             isScoring: row.isScoring,
             isActive: true,

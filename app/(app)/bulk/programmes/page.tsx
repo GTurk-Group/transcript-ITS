@@ -22,11 +22,11 @@ export default async function BulkProgrammesPage() {
                 <h2 className="text-sm font-semibold text-indigo-900 dark:text-indigo-200 mb-3">CSV format</h2>
                 <div className="rounded-lg bg-white/60 dark:bg-black/20 p-3 font-mono text-xs text-indigo-800 dark:text-indigo-300 mb-3">
                     <p className="font-semibold mb-1">Required columns:</p>
-                    <p>name,code,programme_type (optional)</p>
+                    <p>name,code,programme_type (optional), campusId</p>
                     <p className="mt-2 font-semibold">Example rows:</p>
-                    <p>Bachelor of Science in Computer Science,BSC_CS,DEGREE</p>
-                    <p>Bachelor of Education in Mathematics,BED_MATH,DEGREE</p>
-                    <p>Diploma in Information Technology,DIT,DIPLOMA</p>
+                    <p>Bachelor of Science in Computer Science,BSC_CS,DEGREE,KSI</p>
+                    <p>Bachelor of Education in Mathematics,BED_MATH,DEGREE,MAM</p>
+                    <p>Diploma in Information Technology,DIT,DIPLOMA,MAIN</p>
                 </div>
                 <div className="flex items-center gap-4 text-xs">
                     <span className="text-indigo-700 dark:text-indigo-400">• <strong>name</strong> — full programme title (unique)</span>

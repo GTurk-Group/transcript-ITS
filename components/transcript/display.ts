@@ -31,8 +31,8 @@ export function formatStudyPeriod(
   graduationYear: number | string | null | undefined,
 ): string {
   const endYear = graduationYear == null ? null : String(graduationYear).trim();
-  if (!endYear) return `AUG${entryYear}`;
-  return `AUG${entryYear} - JUL${endYear}`;
+  if (!endYear) return `${entryYear}`;
+  return `${entryYear} - ${endYear}`;
 }
 
 /** Wednesday, 21 January 2026 at: 16:35:35 */
