@@ -27,7 +27,7 @@ type UploadState =
   | { phase: "uploading"; file: File; progress: number }
   | { phase: "done"; result: BulkUploadResult };
 
-const MAX_MB = 5;
+const MAX_MB = 80; // 80 MB
 
 export function BulkUploadForm() {
   const [state, setState] = useState<UploadState>({ phase: "idle" });
