@@ -549,7 +549,7 @@ function SemesterBlock({
 // ─── Course Row ──────────────────────────────────────────────────────────────
 
 function CourseRow({ course }: { course: TranscriptCourse }) {
-  const displayGrade = course.grade === "IC" ? "E" : course.grade;
+  const displayGrade = course.grade === "IC" ? "IC" : course.grade;
 
   return (
     <tr style={{ borderBottom: "0.5px solid #ccc" }}>
