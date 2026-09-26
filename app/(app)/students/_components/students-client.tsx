@@ -1,5 +1,7 @@
 "use client";
 
+import { Pagination, usePagination } from "@/components/ui/pagination";
+
 import { useState } from "react";
 import {
   updateStudentAction,
@@ -14,13 +16,13 @@ import {
 
 type Student = {
   id: string; indexNumber: string; firstName: string; lastName: string;
+  campusId?: string | null;
   level: number; entryYear: string; graduationYear?: string | null;
   status: string; programmeId: string; programmeName: string;
   dateOfBirth?: string | null; gender?: string | null;
   email?: string | null; phoneNumber?: string | null;
   middleName?: string | null;
   studentType?: string | null;
-  campusId?: string | null;
 };
 
 const IDLE = { status: "idle" } as const;
@@ -30,11 +32,11 @@ const STATUS_BADGE: Record<string, "green" | "blue" | "gray"> = {
 };
 
 export function StudentsClient({
-  initial, programmes, campuses,
+  initial, programmes, campuses = [],
 }: {
   initial: Student[];
   programmes: Programme[];
-  campuses: { id: string; name: string }[];
+  campuses?: { id: string; name: string }[];
 }) {
   const toast = useToast();
   const [search, setSearch] = useState("");
@@ -42,14 +44,22 @@ export function StudentsClient({
   const [editing, setEditing] = useState<Student | null>(null);
   const [deleting, setDeleting] = useState<Student | null>(null);
   const [delLoading, setDelLoading] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<"all" | "ACTIVE" | "GRADUATED" | "WITHDRAWN">("all");
   const currentYear = new Date().getFullYear();
 
-  // Only show results when user has typed something
+  // Filter: search + status
   const query = search.trim().toLowerCase();
-  const results = query.length === 0 ? [] : initial.filter((s) =>
-    s.indexNumber.toLowerCase().includes(query) ||
-    `${s.firstName} ${s.lastName}`.toLowerCase().includes(query)
-  );
+  const filtered = initial.filter((s) => {
+    const matchSearch = !query ||
+      s.indexNumber.toLowerCase().includes(query) ||
+      `${s.firstName} ${s.middleName ?? ""} ${s.lastName}`.toLowerCase().includes(query) ||
+      (s.programmeName ?? "").toLowerCase().includes(query);
+    const matchStatus = statusFilter === "all" || s.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+
+  const { page, perPage, total, totalPages, paginated, setPage, setPerPage } =
+    usePagination(filtered);
 
   async function handleEdit(formData: FormData) {
     const r = await updateStudentAction(IDLE, formData);
@@ -92,7 +102,7 @@ export function StudentsClient({
         <input
           type="text"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           placeholder="Search by name or index number…"
           className="block w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder:text-gray-500"
         />
@@ -106,36 +116,53 @@ export function StudentsClient({
         )}
       </div>
 
-      {/* No search yet */}
-      {query.length === 0 && (
+      {/* Status filter pills */}
+      <div className="flex flex-wrap items-center gap-2">
+        {(["all", "ACTIVE", "GRADUATED", "WITHDRAWN"] as const).map((f) => (
+          <button key={f} type="button"
+            onClick={() => { setStatusFilter(f); setPage(1); }}
+            className={[
+              "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+              statusFilter === f
+                ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
+                : "border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800",
+            ].join(" ")}>
+            {f === "all" ? "All students" : f.charAt(0) + f.slice(1).toLowerCase()}
+          </button>
+        ))}
+        {(query || statusFilter !== "all") && (
+          <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+            — {total} result{total !== 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+
+      {/* No students at all */}
+      {initial.length === 0 && (
         <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 py-16 text-center dark:border-gray-700 dark:bg-gray-900/30">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-            <SearchIcon className="h-5 w-5 text-gray-400" />
-          </div>
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Search for a student</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-500">
-            Enter a name or index number above to find and manage a student record.
-          </p>
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">No students yet</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-500">Add students individually or use bulk upload.</p>
         </div>
       )}
 
-      {/* Searched but no results */}
-      {query.length > 0 && results.length === 0 && (
+      {/* No filter results */}
+      {initial.length > 0 && filtered.length === 0 && (
         <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 py-12 text-center dark:border-gray-700 dark:bg-gray-900/30">
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">No students found</p>
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">No students match your search</p>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-500">
-            No results for &ldquo;{search}&rdquo;. Try a different name or index number.
+            Try different keywords or clear the filters.
           </p>
+          <button type="button" onClick={() => { setSearch(""); setStatusFilter("all"); setPage(1); }}
+            className="mt-3 text-xs text-indigo-600 hover:underline dark:text-indigo-400">
+            Clear all filters
+          </button>
         </div>
       )}
 
-      {/* Results — student cards */}
-      {results.length > 0 && (
+      {/* Student cards + pagination */}
+      {paginated.length > 0 && (
         <div className="space-y-3">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {results.length} result{results.length !== 1 ? "s" : ""} for &ldquo;{search}&rdquo;
-          </p>
-          {results.map((s) => (
+          {paginated.map((s) => (
             <StudentCard
               key={s.id}
               student={s}
@@ -143,6 +170,10 @@ export function StudentsClient({
               onDelete={() => setDeleting(s)}
             />
           ))}
+          <Pagination
+            page={page} perPage={perPage} total={total} totalPages={totalPages}
+            onPage={setPage} onPerPage={setPerPage}
+          />
         </div>
       )}
 

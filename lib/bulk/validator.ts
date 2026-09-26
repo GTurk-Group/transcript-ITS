@@ -23,7 +23,9 @@ import type { RawStudentRow, ValidStudentRow, RowFailure } from "./types";
 
 // ─── Field-level schema ───────────────────────────────────────────────────────
 
-const VALID_LEVELS = [100, 200, 300, 400, 500, 600, 700, 800, 900] as const;
+const VALID_LEVELS = [
+  100, 200, 300, 400, 500, 600, 700, 701, 800, 801, 900, 901, 902,
+] as const;
 const currentYear = new Date().getFullYear();
 
 const rowSchema = z.object({
